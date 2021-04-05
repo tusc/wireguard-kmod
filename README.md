@@ -1,8 +1,8 @@
-# Wireguard kernel module for UDM/UDM pro
+# WireGuard kernel module for UDM/UDM pro
 ## Project Notes
 **Author:** Carlos Talbot (@tusc69 on ubnt forums)
 
-The tar file in this repository is a collection of binaries that can be loaded onto a UDM/UDM Pro to run wireguard in kernel mode. If you want to compile your own version I plan to have a seperate page up shortly. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the UDM source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
+The tar file in this repository is a collection of binaries that can be loaded onto a UDM/UDM Pro to run WireGuard in kernel mode. WireGuard is a high performance vpn solution developed by Jason Donenfeld ( https://www.wireguard.com/ ). If you want to compile your own version I plan to have a seperate page up shortly. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the UDM source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
 
 We first need to download the tar file onto the UDM. Ssh into the UDM and type the following command from the /root folder to download the tar file:
 
@@ -24,7 +24,7 @@ Once the extraction is complete, cd into /mnt/data/wireguard and run the script 
 
 **Please Note: you will need to run setup_wireguard.sh whenever the UDM is rebooted as the symlinks have to be recreated.** Boostchicken has a script you can use to automatically run the wireguard script anytime the router is rebooted. https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script
 
-There's a sample wireguard config file in /etc/wireguard you can use to create your own, provided you update the public and private keys. There are various tutorials out there for setting up a client/server config for wireguard (e.g. https://www.stavros.io/posts/how-to-configure-wireguard/ )
+There's a sample WireGuard config file in /etc/wireguard you can use to create your own, provided you update the public and private keys. There are various tutorials out there for setting up a client/server config for WireGuard (e.g. https://www.stavros.io/posts/how-to-configure-wireguard/ )
 
 Once you have a properly configured conf file, you need to run this command from the cli:
 
