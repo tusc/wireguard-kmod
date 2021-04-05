@@ -63,5 +63,5 @@ peer: XXXXXXXXXXXX
 # wg-quick down wg0
 ```
 
-I'm currently testing throughput using iperf3 between a UDM Pro and an Ubuntu client over 10Gb. With UDM acting as iperf3 server I'm seeing up to 1.5Gb/sec. Presumably with the UDM acting just as the router you should see higher numbers.
+I'm currently testing throughput using iperf3 between a UDM Pro and an Ubuntu client over 10Gb. With the UDM as the iperf3 server I'm seeing up to 1.5Gb/sec. Presumably with the UDM acting just as the router you should see higher numbers.
 
