@@ -2,9 +2,9 @@
 ## Project Notes
 **Author:** Carlos Talbot (@tusc69 on ubnt forums)
 
-The tar file in this repository is a collection of binaries that can be loaded onto an UDM to run wireguard in  kernel mode. If you want to compile your own version I plan to have a seperate page up shortly.
+The tar file in this repository is a collection of binaries that can be loaded onto a UDM/UDM Pro to run wireguard in kernel mode. If you want to compile your own version I plan to have a seperate page up shortly. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the UDM source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
 
-ssh into the UDM and type the following command from the /root folder to download the tar file:
+We first need to download the tar file onto the UDM. Ssh into the UDM and type the following command from the /root folder to download the tar file:
 
 ```
 # curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/blob/main/wireguard.tar.Z?raw=true
