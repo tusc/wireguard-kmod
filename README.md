@@ -35,7 +35,7 @@ Once you have a properly configured conf file, you need to run this command from
 you should see output similar to the following:
 
 ```
-#] ip link add wg0 type wireguard
+[#] ip link add wg0 type wireguard
 [#] wg setconf wg0 /dev/fd/63
 [#] ip -4 address add 10.10.10.1/24 dev wg0
 [#] ip link set mtu 1420 up dev wg0
@@ -63,6 +63,5 @@ peer: XXXXXXXXXXXX
 # wg-quick down wg0
 ```
 
-I'm currently testing using iperf3 between UDM and an Ubuntu client over 10Gb. With UDM acting as iperf3 server I'm seeing up to 1.5Gb/sec. Presumably with the UDM acting just as the router you should see higher numbers.
-
+I'm currently testing throughput using iperf3 between a UDM Pro and an Ubuntu client over 10Gb. With UDM acting as iperf3 server I'm seeing up to 1.5Gb/sec. Presumably with the UDM acting just as the router you should see higher numbers.
 
