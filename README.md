@@ -23,7 +23,7 @@ loading wireguard...
 ```
 
 
-This will setup the symbolic links for the various binaries to the /usr/bin path as well as create a symlink for the /etc/wireguard folder. You'll want to run **dmesg** to verify the kernel module was loaded. You should see something like the following: 
+This will setup the symbolic links for the various binaries to the /usr/bin path as well as create a symlink for the /etc/wireguard folder and finally load the kernel module. You'll want to run **dmesg** to verify the kernel module was loaded. You should see something like the following: 
 ```
 [13540.520120] wireguard: WireGuard 1.0.20210219 loaded. See www.wireguard.com for information.
 [13540.520126] wireguard: Copyright (C) 2015-2019 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
