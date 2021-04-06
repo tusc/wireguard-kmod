@@ -2,12 +2,12 @@
 ## Project Notes
 **Author:** Carlos Talbot (@tusc69 on ubnt forums)
 
-The tar file in this repository is a collection of binaries that can be loaded onto a UDM/UDM Pro to run WireGuard in kernel mode. WireGuard is a high performance vpn solution developed by Jason Donenfeld ( https://www.wireguard.com/ ). If you want to compile your own version I plan to have a seperate page up shortly. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the UDM source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
+The tar file in this repository is a collection of binaries that can be loaded onto a UDM/UDM Pro to run WireGuard in kernel mode. WireGuard is a high performance vpn solution developed by Jason Donenfeld ( https://www.wireguard.com/ ). The latest backport is included (1.0.20210219) since the UDM runs a 4.1.37 kernel. If you want to compile your own version I plan to have a seperate page up shortly. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the UDM source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
 
 We first need to download the tar file onto the UDM. Connect to it via SSH and type the following command to download the tar file:
 
 ```
-# curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/blob/main/wireguard.tar.Z?raw=true
+# curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/blob/main/wireguard-kmod.tar.Z?raw=true
 ```
 
 From this directory type the following, it will extract the files under the /mnt/data path:
@@ -18,8 +18,8 @@ From this directory type the following, it will extract the files under the /mnt
 
 Once the extraction is complete, cd into /mnt/data/wireguard and run the script **setup_wireguard.sh**. This will setup the symbolic links for the various binaries to the /usr/bin path as well as create a symlink for the /etc/wireguard folder. You'll want to run **dmesg** to verify the kernel module was loaded. You should see something like the following: 
 ```
-[  313.062965] wireguard: WireGuard 0.0.20171211 loaded. See www.wireguard.com for information.
-[  313.062970] wireguard: Copyright (C) 2015-2017 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
+[13540.520120] wireguard: WireGuard 1.0.20210219 loaded. See www.wireguard.com for information.
+[13540.520126] wireguard: Copyright (C) 2015-2019 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
 ```
 
 **Please Note: you will need to run setup_wireguard.sh whenever the UDM is rebooted as the symlinks have to be recreated.** Boostchicken has a script you can use to automatically run the wireguard script anytime the router is rebooted. https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script
@@ -63,5 +63,5 @@ peer: XXXXXXXXXXXX
 # wg-quick down wg0
 ```
 
-I'm currently testing throughput using iperf3 between a UDM Pro and an Ubuntu client over 10Gb. With the UDM as the iperf3 server I'm seeing up to 1.5Gb/sec. Presumably with the UDM acting just as the router you should see higher numbers.
+I'm currently testing throughput using iperf3 between a UDM Pro and an Ubuntu client over 10Gb. With the UDM as the iperf3 server I'm seeing up to 1.5Gb/sec.
 
