@@ -10,7 +10,7 @@ We first need to download the tar file onto the UDM. Connect to it via SSH and t
 # curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/blob/main/wireguard-kmod.tar.Z?raw=true
 ```
 
-If you are 1.9.2, download the following:
+If you are on 1.9.2, download the following:
 ```
 # curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/blob/main/wireguard-kmod-1.9.2.tar.Z?raw=true
 ```
