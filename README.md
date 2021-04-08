@@ -32,7 +32,7 @@ This will setup the symbolic links for the various binaries to the /usr/bin path
 **Please Note: you will need to run setup_wireguard.sh whenever the UDM is rebooted as the symlinks have to be recreated.** Boostchicken has a script you can use to automatically run the wireguard script anytime the router is rebooted. https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script
 
 ## Configuration
-There's a sample WireGuard config file in /etc/wireguard you can use to create your own, provided you update the public and private keys. There are various tutorials out there for setting up a client/server config for WireGuard (e.g. https://www.stavros.io/posts/how-to-configure-wireguard/ ). A typical config might be to allow remote access to your UDM over the WAN. For this you would need to setup a config file on the UDM similar to the following:
+There's a sample WireGuard config file in /etc/wireguard you can use to create your own, provided you update the public and private keys. There are various tutorials out there for setting up a client/server config for WireGuard (e.g. https://www.stavros.io/posts/how-to-configure-wireguard/ ). A typical config might be to allow remote access to your UDM over the WAN to a mobile phone or romaing laptop. For the purpose of this example, the UDM is the server and the phone/laptop the client. For this you would need to setup a config file on the UDM similar to the following:
 
 ```
 [Interface]
@@ -45,7 +45,7 @@ PublicKey = <client's publickey>
 AllowedIPs = 192.168.2.2/32
 ```
 
-The corresponding config on the client would look like this:
+The corresponding config on the phone/laptop (client) would look like this:
 
 ```
 Address = 192.168.2.2
