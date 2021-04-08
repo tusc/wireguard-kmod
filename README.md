@@ -1,6 +1,6 @@
 # WireGuard kernel module for UDM/UDM pro
 ## Project Notes
-**Author:** Carlos Talbot (@tusc69 on ubnt forums)
+**Author:** Carlos Talbot (Tusc00 on reddit, @tusc69 on ubnt forums)
 
 The tar file in this repository is a collection of binaries that can be loaded onto a UDM/UDM Pro to run WireGuard in kernel mode. WireGuard is a high performance vpn solution developed by Jason Donenfeld ( https://www.wireguard.com/ ). Since the UDM runs an older kernel (4.1.37), the latest WireGuard backport has been provided. If you want to compile your own version I plan to have a seperate page up shortly. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the UDM source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
 
@@ -31,6 +31,17 @@ This will setup the symbolic links for the various binaries to the /usr/bin path
 
 **Please Note: you will need to run setup_wireguard.sh whenever the UDM is rebooted as the symlinks have to be recreated.** Boostchicken has a script you can use to automatically run the wireguard script anytime the router is rebooted. https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script
 
+## Issues loading module
+If you see the following then you are running a firmware that currently doesn't have a module built for it.
+```
+# ./setup_wireguard.sh
+loading wireguard...
+insmod: can't insert 'wireguard.ko': invalid module format
+```
+Please reach out and send me last few lines of "dmesg" from the cli to resolve this. I'm looking for a line like this:
+```
+wireguard: version magic '4.1.37-v1.9.3.3438-50c9676 SMP mod_unload modversions aarch64' should be '4.1.37-v1.9.2.3432-3f1425e SMP mod_unload aarch64'
+```
 ## Configuration
 There's a sample WireGuard config file in /etc/wireguard you can use to create your own, provided you update the public and private keys. There are various tutorials out there for setting up a client/server config for WireGuard (e.g. https://www.stavros.io/posts/how-to-configure-wireguard/ ). A typical config might be to allow remote access to your internal LAN over the WAN from a mobile phone or romaing laptop. For the purpose of this example, the UDM is the server and the phone/laptop the client. For this you would need to setup a config file on the UDM similar to the following:
 
