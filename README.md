@@ -31,8 +31,44 @@ This will setup the symbolic links for the various binaries to the /usr/bin path
 
 **Please Note: you will need to run setup_wireguard.sh whenever the UDM is rebooted as the symlinks have to be recreated.** Boostchicken has a script you can use to automatically run the wireguard script anytime the router is rebooted. https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script
 
-There's a sample WireGuard config file in /etc/wireguard you can use to create your own, provided you update the public and private keys. There are various tutorials out there for setting up a client/server config for WireGuard (e.g. https://www.stavros.io/posts/how-to-configure-wireguard/ )
+## Configuration
+There's a sample WireGuard config file in /etc/wireguard you can use to create your own, provided you update the public and private keys. There are various tutorials out there for setting up a client/server config for WireGuard (e.g. https://www.stavros.io/posts/how-to-configure-wireguard/ ). A typical config might be to allow remote access to your UDM over the WAN. For this you would need to setup a config file on the UDM similar to the following:
 
+```
+[Interface]
+Address = 192.168.2.1
+PrivateKey = <server's privatekey>
+ListenPort = 51820
+
+[Peer]
+PublicKey = <client's publickey>
+AllowedIPs = 192.168.2.2/32
+```
+
+The corresponding config on the client would look like this:
+
+```
+Address = 192.168.2.2
+PrivateKey = <client's privatekey>
+ListenPort = 21841
+
+[Peer]
+PublicKey = <server's publickey>
+Endpoint = <server's ip>:51820
+AllowedIPs = 192.168.2.0/24
+
+# This is for if you're behind a NAT and
+# want the connection to be kept alive.
+PersistentKeepalive = 25
+```
+
+You'll need to generate keys on both systems. This can be done with the following command:
+
+```
+wg genkey | tee privatekey | wg pubkey > publickey
+```
+
+## Start tunnel
 Once you have a properly configured conf file, you need to run this command from the cli:
 
 ```
