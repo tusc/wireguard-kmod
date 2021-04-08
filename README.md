@@ -10,7 +10,7 @@ We first need to download the tar file onto the UDM. Connect to it via SSH and t
 # curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/releases/download/v4-8-21/wireguard-kmod-4-8-21.tar.Z
 ```
 
-From this directory type the following, it will extract the files under the /mnt/data path:
+From this directory type the following, it will extract the files to the /mnt/data/wireguard path:
 
 ```
 # tar -C /mnt/data -xvzf wireguard-kmod.tar.Z
