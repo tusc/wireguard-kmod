@@ -68,6 +68,7 @@ You'll need to generate keys on both systems. This can be done with the followin
 wg genkey | tee privatekey | wg pubkey > publickey
 ```
 
+Finally, don't forget to open a port on the firewall in order to allow remote access to the wireguard link. You'll want to create this rule on the UDM under the **WAN LOCAL** section of the firewall settings. The default port is 51820 which can be adjusted in the UDM's config file, just make sure to update the firewall rule accordingly.
 ## Start tunnel
 Once you have a properly configured conf file, you need to run this command from the cli:
 
