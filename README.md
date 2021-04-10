@@ -145,7 +145,7 @@ I'm currently testing throughput using iperf3 between a UDM Pro and an Ubuntu cl
 ```
 
 ## QR Code for clients
-If you gererate the client keys on the UDM you can use qrencode which has been provided for easy configuration on your IOS or Android phone. Just pass the client configuration file to qnencode as shown below and import with your mobile WireGuard client:
+If you gererate the client keys on the UDM you can use qrencode which has been provided for easy configuration on your IOS or Android phone. Just pass the client configuration file to qrencode as shown below and import with your mobile WireGuard client:
 ```
 qrencode -t ansiutf8 </etc/wireguard/wg0.conf.sample
 ```
