@@ -2,8 +2,14 @@
 ## Project Notes
 **Author:** Carlos Talbot (Tusc00 on reddit, @tusc69 on ubnt forums)
 
+  * [Install](#Install)
+  * [Issues loading module](#issues-loading-module)
+  * [Configuration](#configuration)
+  * [Start tunnel](#start-tunnel)
+
 The tar file in this repository is a collection of binaries that can be loaded onto a UDM/UDM Pro to run WireGuard in kernel mode. WireGuard is a high performance vpn solution developed by Jason Donenfeld ( https://www.wireguard.com/ ). Since the UDM runs an older kernel (4.1.37), the latest WireGuard backport has been provided. If you want to compile your own version I plan to have a seperate page up shortly. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the UDM source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
 
+## Install
 We first need to download the tar file onto the UDM. Connect to it via SSH and type the following command to download the tar file. You need to download the following:
 
 ```
