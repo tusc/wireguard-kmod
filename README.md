@@ -29,7 +29,7 @@ This will setup the symbolic links for the various binaries to the /usr/bin path
 [13540.520126] wireguard: Copyright (C) 2015-2019 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
 ```
 
-**Please Note: you will need to run setup_wireguard.sh whenever the UDM is rebooted as the symlinks have to be recreated.** Boostchicken has a script you can use to automatically run the wireguard script anytime the router is rebooted. https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script
+**Please Note: you will need to run setup_wireguard.sh whenever the UDM is rebooted as the symlinks have to be recreated.** Boostchicken has a package that can be installed to automatically run the wireguard script anytime the router is rebooted. Just follow the instructions here https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script and drop the **setup_wireguard.sh** script into the /mnt/data/on_boot.d directory when finished.
 
 ## Issues loading module
 If you see the following then you are running a firmware that currently doesn't have a module built for it.
