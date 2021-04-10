@@ -52,10 +52,7 @@ loading wireguard...
 insmod: can't insert 'wireguard-4.1.37-v1.9.3.3438-50c9677.ko': No such file or directory
 insmod: can't insert 'iptable_raw-4.1.37-v1.9.3.3438-50c9677.ko': No such file or directory
 ```
-Please reach out and send me the last few lines of "dmesg" from the cli to resolve this. I'm looking for a line like this:
-```
-wireguard: version magic '4.1.37-v1.9.3.3438-50c9676 SMP mod_unload modversions aarch64' should be '4.1.37-v1.9.2.3432-3f1425e SMP mod_unload aarch64'
-```
+Please reach out and send me a copy of the output from above.
 ## Configuration
 There's a sample WireGuard config file in /etc/wireguard you can use to create your own, provided you update the public and private keys. You'll want to copy the sample config and use VI to edit it. You can also just copy an existing config from another server you want to use.
 
