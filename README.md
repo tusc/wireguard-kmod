@@ -6,6 +6,8 @@
   * [Issues loading module](#issues-loading-module)
   * [Configuration](#configuration)
   * [Start tunnel](#start-tunnel)
+  * [Stop tunnel](#stop-tunnel)
+  * [Multi WAN failover](#multi-wan)
 
 The tar file in this repository is a collection of binaries that can be loaded onto a UDM/UDM Pro to run WireGuard in kernel mode. WireGuard is a high performance vpn solution developed by Jason Donenfeld ( https://www.wireguard.com/ ). Since the UDM runs an older kernel (4.1.37), the latest WireGuard backport has been provided. If you want to compile your own version I plan to have a seperate page up shortly. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the UDM source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
 
@@ -124,6 +126,7 @@ peer: XXXXXXXXXXXX
   transfer: 3.26 GiB received, 46.17 MiB sent
 ```
 
+## Stop tunnel
  Finally, in order to shutdown the tunnel you'll need to run this command:
  
 ```
@@ -131,4 +134,8 @@ peer: XXXXXXXXXXXX
 ```
 
 I'm currently testing throughput using iperf3 between a UDM Pro and an Ubuntu client over 10Gb. With the UDM as the iperf3 server I'm seeing up to 1.5Gb/sec.
+
+## Multi WAN failover
+If you have mutliple WANs or are using the UniFi Redundant WAN over LTE, you'll notice the WireGuard connection stays active with the failover link when the primary WAN comes back. A user has written a script to reset the WireGuard tunnel during a fail backup. You can find it at the link below. Just drop it in the startup directory /mnt/data/on_boot.d as referended abvove.
+https://github.com/k-a-s-c-h/unifi/blob/main/on_boot.d/10-wireguard_failover.sh
 
