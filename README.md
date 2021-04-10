@@ -3,10 +3,12 @@
 **Author:** Carlos Talbot (Tusc00 on reddit, @tusc69 on ubnt forums)
 
   * [Install](#Install)
+  * [Upgrades](#Upgrades)
   * [Issues loading module](#issues-loading-module)
   * [Configuration](#configuration)
   * [Start tunnel](#start-tunnel)
   * [Stop tunnel](#stop-tunnel)
+  * [QR Code for clients](#qr-code-for-clients)
   * [Multi WAN failover](#multi-wan-failover)
 
 The tar file in this repository is a collection of binaries that can be loaded onto a UDM/UDM Pro to run WireGuard in kernel mode. WireGuard is a high performance vpn solution developed by Jason Donenfeld ( https://www.wireguard.com/ ). Since the UDM runs an older kernel (4.1.37), the latest WireGuard backport has been provided. If you want to compile your own version I plan to have a seperate page up shortly. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the UDM source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
@@ -15,7 +17,7 @@ The tar file in this repository is a collection of binaries that can be loaded o
 We first need to download the tar file onto the UDM. Connect to it via SSH and type the following command to download the tar file. You need to download the following:
 
 ```
-# curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/releases/download/v4-8-21-2/wireguard-kmod-04-08-21-2.tar.Z
+# curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/releases/download/v4-10-21/wireguard-kmod-04-10-21.tar.Z
 ```
 
 From this directory type the following, it will extract the files to the /mnt/data/wireguard path:
@@ -29,15 +31,17 @@ Once the extraction is complete, cd into /mnt/data/wireguard and run the script 
 # ./setup_wireguard.sh
 loading wireguard...
 ```
-
-
 This will setup the symbolic links for the various binaries to the /usr/bin path as well as create a symlink for the /etc/wireguard folder and finally load the kernel module. You'll want to run **dmesg** to verify the kernel module was loaded. You should see something like the following: 
 ```
 [13540.520120] wireguard: WireGuard 1.0.20210219 loaded. See www.wireguard.com for information.
 [13540.520126] wireguard: Copyright (C) 2015-2019 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
 ```
+The tar file includes other useful utils such as htop, iftop and [qrencode.](#qr-code-for-clients)
 
 **Please Note: you will need to run setup_wireguard.sh whenever the UDM is rebooted as the symlinks have to be recreated.** Boostchicken has a package that can be installed to automatically run the wireguard script anytime the router is rebooted. Just follow the instructions here https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script and drop the **setup_wireguard.sh** script into the /mnt/data/on_boot.d directory when finished.
+
+## Upgrades
+You can safely download new versions and extract over prior releases.
 
 ## Issues loading module
 If you see the following then you are running a firmware that currently doesn't have a module built for it.
@@ -125,7 +129,7 @@ peer: XXXXXXXXXXXX
   latest handshake: 47 seconds ago
   transfer: 3.26 GiB received, 46.17 MiB sent
 ```
-
+I'm currently testing throughput using iperf3 between a UDM Pro and an Ubuntu client over 10Gb. With the UDM as the iperf3 server I'm seeing up to 1.5Gb/sec.
 ## Stop tunnel
  Finally, in order to shutdown the tunnel you'll need to run this command:
  
@@ -133,7 +137,13 @@ peer: XXXXXXXXXXXX
 # wg-quick down wg0
 ```
 
-I'm currently testing throughput using iperf3 between a UDM Pro and an Ubuntu client over 10Gb. With the UDM as the iperf3 server I'm seeing up to 1.5Gb/sec.
+## QR Code for clients
+If you gererate the client keys on the UDM you can use qrencode which has been provided for easy configuration on your IOS or Android phone. Just pass the client configuration file to qnencode as shown below and import with your mobile WireGuard client:
+```
+qrencode -t ansiutf8 </etc/wireguard/wg0.conf.sample
+```
+
+![qrencode](/images/qrencode.png)
 
 ## Multi WAN failover
 If you have mutliple WANs or are using the UniFi Redundant WAN over LTE, you'll notice the WireGuard connection stays active with the failover link when the primary WAN comes back. A user has written a script to reset the WireGuard tunnel during a fail backup. You can find it at the link below. Just drop it in the startup directory /mnt/data/on_boot.d as referended abvove.
