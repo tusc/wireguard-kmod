@@ -2,6 +2,11 @@
 ## Project Notes
 **Author:** Carlos Talbot (Tusc00 on reddit, @tusc69 on ubnt forums)
 
+The tar file in this repository is a collection of binaries that can be loaded onto a UDM/UDM Pro to run WireGuard in kernel mode. WireGuard is a high performance vpn solution developed by Jason Donenfeld ( https://www.wireguard.com/ ). "WireGuard" and the "WireGuard" logo are registered trademarks of Jason A. Donenfeld.<br/><br/>
+
+Please see below for instructions on how to install the prebuilt kernel module and associated utils.
+## Table of Contents
+
   * [Install](#Install)
   * [Surviving Reboots](#surviving-reboots)
   * [Upgrades](#Upgrades)
@@ -12,8 +17,8 @@
   * [QR Code for clients](#qr-code-for-clients)
   * [Multi WAN failover](#multi-wan-failover)
 
-The tar file in this repository is a collection of binaries that can be loaded onto a UDM/UDM Pro to run WireGuard in kernel mode. WireGuard is a high performance vpn solution developed by Jason Donenfeld ( https://www.wireguard.com/ ). "WireGuard" and the "WireGuard" logo are registered trademarks of Jason A. Donenfeld.<br/><br/>
-Since the UDM runs an older kernel (4.1.37), the latest WireGuard backport has been provided. If you want to compile your own version I plan to have a seperate page up shortly. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the UDM source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
+
+The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 800Mb/sec throughput through an IPSec tunnel. There has been a large interest in a kernel port of WireGuard since performance is expected to be similar if not more. This kernel module was built using the WireGuard backport as the UDM runs an older kernel(4.1.37). If you want to compile your own version, there will be a seperate build page posted soon. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the UDM source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
 
 ## Install
 We first need to download the tar file onto the UDM. Connect to it via SSH and type the following command to download the tar file. You need to download the following:
