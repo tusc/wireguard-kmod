@@ -3,6 +3,7 @@
 **Author:** Carlos Talbot (Tusc00 on reddit, @tusc69 on ubnt forums)
 
   * [Install](#Install)
+  * [Surviving Reboots](#surviving-reboots)
   * [Upgrades](#Upgrades)
   * [Issues loading module](#issues-loading-module)
   * [Configuration](#configuration)
@@ -39,6 +40,7 @@ This will setup the symbolic links for the various binaries to the /usr/bin path
 ```
 The tar file includes other useful utils such as htop, iftop and [qrencode.](#qr-code-for-clients)
 
+## Surviving Reboots
 **Please Note: you will need to run setup_wireguard.sh whenever the UDM is rebooted as the symlinks have to be recreated.** Boostchicken has a package that can be installed to automatically run the wireguard script anytime the router is rebooted. Just follow the instructions here https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script and drop the **setup_wireguard.sh** script into the /mnt/data/on_boot.d directory when finished.
 
 ## Upgrades
@@ -145,6 +147,6 @@ qrencode -t ansiutf8 </etc/wireguard/wg0.conf.sample
 ![qrencode](/images/qrencode.png)
 
 ## Multi WAN failover
-If you have mutliple WANs or are using the UniFi Redundant WAN over LTE, you'll notice the WireGuard connection stays active with the failover link when the primary WAN comes back. A user has written a script to reset the WireGuard tunnel during a fail backup. You can find it at the link below. Just drop it in the startup directory /mnt/data/on_boot.d as referended abvove.
+If you have mutliple WANs or are using the UniFi Redundant WAN over LTE, you'll notice the WireGuard connection stays active with the failover link when the primary WAN comes back. A user has written a script to reset the WireGuard tunnel during a fail backup. You can find it at the link below. Just drop it in the startup directory /mnt/data/on_boot.d as referended [above](#surviving-reboots).
 https://github.com/k-a-s-c-h/unifi/blob/main/on_boot.d/10-wireguard_failover.sh
 
