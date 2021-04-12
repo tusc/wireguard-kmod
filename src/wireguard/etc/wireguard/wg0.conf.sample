@@ -1,0 +1,8 @@
+# Sample file. Please update private/public keys
+[Interface]
+Address = 10.10.10.1/24
+ListenPort = 51820
+PrivateKey = XXXXXXXXXXXXXXXX
+[Peer]
+PublicKey = XXXXXXXXXXXXXXXX
+AllowedIPs = 10.10.10.2/32
