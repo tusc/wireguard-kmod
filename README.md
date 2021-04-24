@@ -21,10 +21,10 @@ Please see below for instructions on how to install the prebuilt kernel module a
 The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 800Mb/sec throughput through an IPSec tunnel. There has been a large interest in a kernel port of WireGuard since performance is expected to be similar if not more. This kernel module was built using the WireGuard backport as the UDM runs an older kernel(4.1.37). If you want to compile your own version, there will be a seperate build page posted soon. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the UDM source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
 
 ## Install
-We first need to download the tar file onto the UDM. Connect to it via SSH and type the following command to download the tar file. You need to download the following:
+We first need to download the tar file onto the UDM. Connect to it via SSH and type the following command to download the tar file. You need to download the following tar file. NOTE: always [this link](https://github.com/tusc/wireguard-kmod/releases) check for the latest release.
 
 ```
-# curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/releases/download/v4-10-21/wireguard-kmod-04-10-21.tar.Z
+# curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/releases/download/v4-19-21/wireguard-kmod-04-19-21.tar.Z
 ```
 
 From this directory type the following, it will extract the files to the /mnt/data/wireguard path:
