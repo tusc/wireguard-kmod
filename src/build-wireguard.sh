@@ -44,7 +44,7 @@ do
    make wireguard-linux-compat-dirclean
    sed -i -e '/CONFIG_LOCALVERSION=/s/.*/CONFIG_LOCALVERSION="'$i'"/' UDM-config.txt
    make wireguard-linux-compat-rebuild -j6
-   cp ./output/build/wireguard-linux-compat-1.0.20210219/src/wireguard.ko ../wireguard/wireguard-4.1.37$i.ko
+   cp ./output/build/wireguard-linux-compat-1.0.20210606/src/wireguard.ko ../wireguard/wireguard-4.1.37$i.ko
 # the netfiler raw module is required in the wg-quick script for iptables-restore
    cp ./output/build/linux-custom/net/ipv4/netfilter/iptable_raw.ko ../wireguard/iptable_raw-4.1.37$i.ko
 done
