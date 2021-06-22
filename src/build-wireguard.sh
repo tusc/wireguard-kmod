@@ -51,7 +51,7 @@ if [ -f "base-version" ]; then
 fi
 for i in `cat ../kernel-versions.txt`
 do
-   # Check for base version folder and make clean if different than previous base version.
+   # Check for base version folder.
    old_base_version="${base_version}"
    get_base_version $i
    if [ ! -d "../udm-${base_version}" ]; then
@@ -59,7 +59,14 @@ do
 	   base_version="${old_base_version}"
 	   continue
    fi
+   # Skip building module if already built.
    prefix="$(cat "../udm-${base_version}/prefix")"
+   if [ -f "../wireguard/wireguard-${prefix}$i.ko" ]; then
+	   echo "Skipping already built wireguard module for version $i."
+	   base_version="${old_base_version}"
+	   continue
+   fi
+   # Cleanup if current base is different than last base used.
    if [ "${base_version}" != "${old_base_version}" ]; then
 	   make clean
 	   echo "${base_version}" > base-version
@@ -90,27 +97,32 @@ do
    cp ./output/build/linux-custom/net/ipv4/netfilter/iptable_raw.ko ../wireguard/iptable_raw-${prefix}$i.ko
 done
 
-echo "Building utilities."
-mkdir -p ../wireguard/etc/wireguard
-mkdir -p ../wireguard/usr/bin
-mkdir -p ../wireguard/usr/sbin
+# Build utilities if not previously built.
+if [ ! -f "../wireguard/usr/sbin/iftop" ]; then
+	echo "Building utilities."
+	mkdir -p ../wireguard/etc/wireguard
+	mkdir -p ../wireguard/usr/bin
+	mkdir -p ../wireguard/usr/sbin
 
-# Use 1.9.0-10 buildroot config for utilities
-cp ../udm-1.9.0-10/buildroot-config.txt ./.config
+	# Use 1.9.0-10 buildroot config for utilities
+	cp ../udm-1.9.0-10/buildroot-config.txt ./.config
 
-make wireguard-tools-rebuild
-cp ./output/target/usr/bin/wg ../wireguard/usr/bin
+	make wireguard-tools-rebuild
+	cp ./output/target/usr/bin/wg ../wireguard/usr/bin
 
-make bash-rebuild
-cp ./output/target/bin/bash ../wireguard/usr/bin
+	make bash-rebuild
+	cp ./output/target/bin/bash ../wireguard/usr/bin
 
-make libqrencode-rebuild
-cp ./output/target/usr/bin/qrencode ../wireguard/usr/bin
+	make libqrencode-rebuild
+	cp ./output/target/usr/bin/qrencode ../wireguard/usr/bin
 
-make htop-rebuild
-cp ./output/target/usr/bin/htop ../wireguard/usr/bin
+	make htop-rebuild
+	cp ./output/target/usr/bin/htop ../wireguard/usr/bin
 
-make iftop-rebuild
-cp ./output/target/usr/sbin/iftop ../wireguard/usr/sbin
+	make iftop-rebuild
+	cp ./output/target/usr/sbin/iftop ../wireguard/usr/sbin
+else
+	echo "Skipping already built utilities."
+fi
 
 cd ..; tar -cvzf ../releases/wireguard-kmod-`date +%m-%d-%y`.tar.Z wireguard/
