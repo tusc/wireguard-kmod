@@ -6,6 +6,7 @@
 #		for building wireguard tools and bash given the number of CVEs with glib 2.26. Preliminary support for the UXG.
 # v4-10-21	Updated release to include utils such as htop, iftop and qrencode. The last one allows easy import of wireguard configs
 #		into your IOS/Android WireGuard client using QR codes. 
+# v6-23-21	Added support for resolvconf
 WIREGUARD="/mnt/data/wireguard"
 
 ln -sf $WIREGUARD/usr/bin/wg-quick /usr/bin
@@ -14,11 +15,18 @@ ln -sf $WIREGUARD/usr/bin/bash /usr/bin
 ln -sf $WIREGUARD/usr/bin/qrencode /usr/bin
 ln -sf $WIREGUARD/usr/bin/htop /usr/bin
 ln -sf $WIREGUARD/usr/sbin/iftop /usr/sbin
+ln -sf $WIREGUARD/sbin/resolvconf /sbin
 
 # create symlink to wireguard config folder
 if [ ! -d "/etc/wireguard" ]
 then
    ln -s $WIREGUARD/etc/wireguard /etc/wireguard
+fi
+
+# create symlink to resolvconf config file
+if [ ! -f "/etc/resolvconf.conf" ]
+then
+   ln -s $WIREGUARD/etc/resolvconf.conf /etc/
 fi
 
 # required by wg-quick
