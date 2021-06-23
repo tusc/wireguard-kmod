@@ -11,7 +11,8 @@ WIREGUARD="/mnt/data/wireguard"
 
 ln -sf $WIREGUARD/usr/bin/wg-quick /usr/bin
 ln -sf $WIREGUARD/usr/bin/wg /usr/bin
-ln -sf $WIREGUARD/usr/bin/bash /usr/bin /bin
+ln -sf $WIREGUARD/usr/bin/bash /usr/bin
+ln -sf $WIREGUARD/usr/bin/bash /bin
 ln -sf $WIREGUARD/usr/bin/qrencode /usr/bin
 ln -sf $WIREGUARD/usr/bin/htop /usr/bin
 ln -sf $WIREGUARD/usr/sbin/iftop /usr/sbin
