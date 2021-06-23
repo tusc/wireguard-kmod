@@ -8,24 +8,27 @@ The tar file in this repository is a collection of binaries that can be loaded o
 Please see below for instructions on how to install the prebuilt kernel module and associated utils.
 ## Table of Contents
 
-  * [Install](#Install)
+  * [Install](#install)
+  * [Build from source](#build-from-source)
   * [Surviving Reboots](#surviving-reboots)
-  * [Upgrades](#Upgrades)
+  * [Upgrades](#upgrades)
   * [Issues loading module](#issues-loading-module)
   * [Configuration](#configuration)
   * [Start tunnel](#start-tunnel)
   * [Stop tunnel](#stop-tunnel)
-  * [QR Code for clients](#qr-code-for-clients)
   * [Multi WAN failover](#multi-wan-failover)
+  * [Split VPN](#split-vpn)
+  * [QR Code for clients](#qr-code-for-clients)
 
 
-The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 800Mb/sec throughput through an IPSec tunnel. There has been a large interest in a kernel port of WireGuard since performance is expected to be similar if not more. This kernel module was built using the WireGuard backport as the UDM runs an older kernel(4.1.37). If you want to compile your own version, there will be a seperate build page posted soon. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the UDM source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
+The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 800Mb/sec throughput through an IPSec tunnel. There has been a large interest in a kernel port of WireGuard since performance is expected to be similar if not more. This kernel module was built using the WireGuard backport as the UDM runs an older kernel(4.1.37). If you want to compile your own version, there will be a seperate build page posted soon. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the Ubiquiti UDM GPL source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
+
 
 ## Install
 We first need to download the tar file onto the UDM. Connect to it via SSH and type the following command to download the tar file. You need to download the following tar file. NOTE: always [this link](https://github.com/tusc/wireguard-kmod/releases) check for the latest release.
 
 ```
-# curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/releases/download/v5-28-21/wireguard-kmod-05-28-21.tar.Z
+# curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/releases/download/v6-22-21/wireguard-kmod-06-22-21.tar.Z
 ```
 
 From this directory type the following, it will extract the files to the /mnt/data/wireguard path:
@@ -46,8 +49,11 @@ This will setup the symbolic links for the various binaries to the /usr/bin path
 ```
 The tar file includes other useful utils such as htop, iftop and [qrencode.](#qr-code-for-clients)
 
+## Build from source
+To build this package please follow this [README](https://github.com/tusc/wireguard-kmod/blob/main/README.building.md)
+
 ## Surviving Reboots
-**Please Note: you will need to run setup_wireguard.sh whenever the UDM is rebooted as the symlinks have to be recreated.** Boostchicken has a package that can be installed to automatically run the wireguard script anytime the router is rebooted. Just follow the instructions here https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script and drop the **setup_wireguard.sh** script into the /mnt/data/on_boot.d directory when finished.
+**Please Note: you will need to run setup_wireguard.sh whenever the UDM is rebooted as the symlinks have to be recreated.** Boostchicken has a package that can be installed to automatically run the wireguard script anytime the router is rebooted. Just follow the instructions [here](https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script) and drop the **setup_wireguard.sh** script into the /mnt/data/on_boot.d directory when finished.
 
 ## Upgrades
 You can safely download new versions and extract over prior releases.
@@ -145,6 +151,14 @@ I'm currently testing throughput using iperf3 between a UDM Pro and an Ubuntu cl
 # wg-quick down wg0
 ```
 
+## Multi WAN failover
+If you have mutliple WANs or are using the UniFi Redundant WAN over LTE, you'll notice the WireGuard connection stays active with the failover link when the primary WAN comes back. A user has written a script to reset the WireGuard tunnel during a fail backup. You can find it at the link below. Just drop it in the startup directory /mnt/data/on_boot.d just like the setup script [above](#surviving-reboots).
+https://github.com/k-a-s-c-h/unifi/blob/main/on_boot.d/10-wireguard_failover.sh
+
+## Split VPN
+
+For s split tunnel VPN script for the UDM with policy based routing, have a look at peacey's [tool](https://github.com/peacey/split-vpn)
+
 ## QR Code for clients
 If you gererate the client keys on the UDM you can use qrencode which has been provided for easy configuration on your IOS or Android phone. Just pass the client configuration file to qrencode as shown below and import with your mobile WireGuard client:
 ```
@@ -152,8 +166,3 @@ qrencode -t ansiutf8 </etc/wireguard/wg0.conf.sample
 ```
 
 ![qrencode](/images/qrencode.png)
-
-## Multi WAN failover
-If you have mutliple WANs or are using the UniFi Redundant WAN over LTE, you'll notice the WireGuard connection stays active with the failover link when the primary WAN comes back. A user has written a script to reset the WireGuard tunnel during a fail backup. You can find it at the link below. Just drop it in the startup directory /mnt/data/on_boot.d just like the setup script [above](#surviving-reboots).
-https://github.com/k-a-s-c-h/unifi/blob/main/on_boot.d/10-wireguard_failover.sh
-
