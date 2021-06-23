@@ -19,8 +19,9 @@
     ls -lh linux*tar.gz
     ```
     
-    * If the size is a few bytes instead of 100MB, then the kernel sources did not download correctly. This is most probably due to Git LFS not being installed.
-    * If you are having trouble with Git LFS, you can download the files manually through the [GitHub web interface](https://github.com/tusc/wireguard-kmod/tree/main/src) instead and place them in this folder.
+    * If the size is a few bytes instead of 100MB, then the kernel sources did not download correctly. This is most probably due to Git LFS not being installed or the LFS quota being exceeded.
+    * If you are having trouble with Git LFS, you can try to download the files manually through the [GitHub web interface](https://github.com/tusc/wireguard-kmod/tree/main/src) or one of these mirrors:
+        * https://drive.google.com/drive/folders/11CXRjaGsTSTqfs8LdXQ8YoA7tVY_OuHU
    
 4. Modify the `kernel-versions.txt` file in this directory to add any custom versions you want to build or remove ones you do not want to build. 
 
@@ -37,7 +38,11 @@
 6. If successful, you should find:
 
     * The newly built kernel modules and utilities under the `wireguard` directory in the current folder
-    * A newly built tarball in the releases folder one directory up (`../releases`) that you can install on your UDM following the regular instructions in the [main README](https://github.com/tusc/wireguard-kmod/blob/main/README.md).
+    * A newly built tarball named `wireguard-kmod-MM-DD-YY.tar.Z` in the releases folder one directory up (`../releases`) that you can install on your UDM following the regular instructions in the [main README](https://github.com/tusc/wireguard-kmod/blob/main/README.md).
+        * You can transfer the tarball or modules to your UDM using `scp`. For example, assuming your UDM is at 192.168.1.254, the following command will transfer the tarball to the your UDM's `/mnt/data` directory.
+            ```sh
+            scp ../releases/wireguard-kmod-06-23-21.tar.Z root@192.168.1.254:/mnt/data
+            ```
     
 7. If building multiple times, the build script will skip building previously built modules. If you want to force re-build everything, then delete the previously built modules and utilities from the `wireguard` folder first.
 
