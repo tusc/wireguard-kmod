@@ -22,6 +22,7 @@
     * If the size is a few bytes instead of 100MB, then the kernel sources did not download correctly. This is most probably due to Git LFS not being installed or the LFS quota being exceeded.
     * If you are having trouble with Git LFS, you can try to download the files manually through the [GitHub web interface](https://github.com/tusc/wireguard-kmod/tree/main/src) or one of these mirrors:
         * https://drive.google.com/drive/folders/11CXRjaGsTSTqfs8LdXQ8YoA7tVY_OuHU
+        * https://drive.google.com/drive/folders/1wa8HLSOVnSs6OLLCoyR-YEWIgyUzmvwk
    
 4. Modify the `kernel-versions.txt` file in this directory to add any custom versions you want to build or remove ones you do not want to build. 
 
