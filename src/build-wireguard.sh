@@ -30,9 +30,10 @@ then
    fi
    tar -xvjf buildroot-2017.11.1.tar.bz2
 
-   # copy wireguard packages and add to menu seleciton
+   # copy wireguard and openresolv packages and add to menu seleciton
    cp -pr packages/* buildroot-2017.11.1/package
    patch -p0 <patches/wireguard-packages.patch
+   patch -p0 <patches/openresolv-package.patch
    patch -d buildroot-2017.11.1 -p1 <patches/add-kernel-4-19.patch
 
    cp patches/0001-m4-glibc-change-work-around.patch buildroot-2017.11.1/package/m4
@@ -109,6 +110,10 @@ if [ ! -f "../wireguard/usr/sbin/iftop" ]; then
 
 	make wireguard-tools-rebuild
 	cp ./output/target/usr/bin/wg ../wireguard/usr/bin
+
+	make openresolv-rebuild
+	cp ./output/target/sbin/resolvconf ../wireguard/sbin
+	cp ./output/target/etc/resolvconf.conf ../wireguard/etc
 
 	make bash-rebuild
 	cp ./output/target/bin/bash ../wireguard/usr/bin
