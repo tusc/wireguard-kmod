@@ -1,8 +1,6 @@
 # WireGuard kernel module for UDM/UDM pro
 ## Project Notes
 
-## NOTE: users have reported issues with the latest v10 release. Currently investigating.
-
 **Author:** Carlos Talbot (Tusc00 on reddit, @tusc69 on ubnt forums)
 
 The tar file in this repository is a collection of binaries that can be loaded onto a UDM/UDM Pro to run WireGuard in kernel mode. WireGuard is a high performance vpn solution developed by Jason Donenfeld ( https://www.wireguard.com/ ). "WireGuard" and the "WireGuard" logo are registered trademarks of Jason A. Donenfeld.<br/><br/>
