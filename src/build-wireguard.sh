@@ -69,7 +69,7 @@ do
    fi
    # Cleanup if current base is different than last base used.
    if [ "${base_version}" != "${old_base_version}" ]; then
-	   make clean
+	   rm -rf output/build/linux-*
 	   echo "${base_version}" > base-version
    fi
    echo "Building kernel version $i using UDM base ${base_version}."
@@ -104,12 +104,14 @@ if [ ! -f "../wireguard/usr/sbin/iftop" ]; then
 	mkdir -p ../wireguard/etc/wireguard
 	mkdir -p ../wireguard/usr/bin
 	mkdir -p ../wireguard/usr/sbin
+	mkdir -p ../wireguard/sbin
 
 	# Use 1.9.0-10 buildroot config for utilities
 	cp ../udm-1.9.0-10/buildroot-config.txt ./.config
 
 	make wireguard-tools-rebuild
 	cp ./output/target/usr/bin/wg ../wireguard/usr/bin
+	cp ./output/build/wireguard-tools-*/src/wg-quick/linux.bash ../wireguard/usr/bin/wg-quick
 
 	make openresolv-rebuild
 	cp ./output/target/sbin/resolvconf ../wireguard/sbin
