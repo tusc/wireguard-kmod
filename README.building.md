@@ -24,9 +24,9 @@
         * https://drive.google.com/drive/folders/11CXRjaGsTSTqfs8LdXQ8YoA7tVY_OuHU
         * https://drive.google.com/drive/folders/1wa8HLSOVnSs6OLLCoyR-YEWIgyUzmvwk
    
-4. Modify the `kernel-versions.txt` file in this directory to add any custom versions you want to build or remove ones you do not want to build. 
+4. The build is divided into multiple kernel bases, where each kernel base is used for multiple UDM versions. Add any custom versions you want to build to the `versions.txt` file in the correct base folder (called `udm-<BASE_VERSION>`).
 
-    * The version can be found by running `uname -r` on the UDM and taking the end `-vX.Y.Z.xxxx-yyyyyyy` suffix, where X.Y.Z is your UDM version. Look at the current versions in `kernel-versions.txt` for what it should look like.
+    * Your UDM's version can be found by running `uname -r` on the UDM and taking the end `-vX.Y.Z.xxxx-yyyyyyy` suffix, where X.Y.Z is your UDM version. Look at the other `versions.txt` files for what it should look like.
 
 5. Run `build-wireguard.sh` in this directory to build the wireguard module and utilities for each version in `kernel-versions.txt`.
 
