@@ -2,26 +2,6 @@
 # Build the wireguard kernel module and utilities for the UDM.
 set -e
 
-# vertle ver1 ver2
-# Returns true if ver1 <= ver2
-verlte() {
-	printf '%s\n%s' "$1" "$2" | sort -c -V &>/dev/null
-}
-
-# verlt ver1 ver2
-# Returns true if ver1 < ver2
-verlt() {
-	! verlte "$2" "$1"
-}
-
-# get_base_version ver
-# Sets the base version for UDM version @ver
-get_base_version() {
-	verlt $1 -v1.10.0 && base_version=1.9.0-10 && return
-	verlt $1 -v1.10.0-12 && base_version=1.10.0-8 && return
-	base_version=1.10.0-12
-}
-
 if [ ! -f "buildroot-2017.11.1/Config.in" ]
 then
    if [ ! -f buildroot-2017.11.1.tar.bz2 ]
@@ -48,34 +28,12 @@ fi
 cd buildroot-2017.11.1
 
 if [ -f "base-version" ]; then
-	base_version="$(cat base-version)"
+	last_base_used="$(cat base-version)"
 fi
-for i in `cat ../kernel-versions.txt`
+for base in ../udm-*;
 do
-   # Check for base version folder.
-   old_base_version="${base_version}"
-   get_base_version $i
-   if [ ! -d "../udm-${base_version}" ]; then
-	   echo "Could not find base folder udm-${base_version} for version $i."
-	   base_version="${old_base_version}"
-	   continue
-   fi
-   # Skip building module if already built.
-   prefix="$(cat "../udm-${base_version}/prefix")"
-   if [ -f "../wireguard/wireguard-${prefix}$i.ko" ]; then
-	   echo "Skipping already built wireguard module for version $i."
-	   base_version="${old_base_version}"
-	   continue
-   fi
-   # Cleanup if current base is different than last base used.
-   if [ "${base_version}" != "${old_base_version}" ]; then
-	   rm -rf output/build/linux-*
-	   echo "${base_version}" > base-version
-   fi
-   echo "Building kernel version $i using UDM base ${base_version}."
-
    # Exit if required kernel package does not exist.
-   kernel_pkg=$(grep LINUX_KERNEL_CUSTOM_TARBALL_LOCATION "../udm-${base_version}/buildroot-config.txt" |
+   kernel_pkg=$(grep LINUX_KERNEL_CUSTOM_TARBALL_LOCATION "${base}/buildroot-config.txt" |
 	   sed -En s/".*(linux-.*.tar.gz).*"/"\1"/p)
    if [ ! -f "../${kernel_pkg}" ]; then
 	   echo "Error: Linux kernel package ${kernel_pkg} not found. You need to download it to this directory."
@@ -83,19 +41,37 @@ do
    fi
 
    # Use the configuration for the current base version.
-   cp "../udm-${base_version}/buildroot-config.txt" ./.config
-   cp "../udm-${base_version}/UDM-config.txt" ./
+   cp "${base}/buildroot-config.txt" ./.config
+   cp "${base}/UDM-config.txt" ./
    rm -rf ./linux-patches
-   if [ -d "../udm-${base_version}/linux-patches" ]; then
-      cp -rf "../udm-${base_version}/linux-patches" ./
+   if [ -d "${base}/linux-patches" ]; then
+      cp -rf "${base}/linux-patches" ./
    fi
-
-   make wireguard-linux-compat-dirclean
-   sed -i -e '/CONFIG_LOCALVERSION=/s/.*/CONFIG_LOCALVERSION="'$i'"/' UDM-config.txt
-   make wireguard-linux-compat-rebuild -j6
-   cp ./output/build/wireguard-linux-compat-1.0.20210606/src/wireguard.ko ../wireguard/wireguard-${prefix}$i.ko
-   # the netfiler raw module is required in the wg-quick script for iptables-restore
-   cp ./output/build/linux-custom/net/ipv4/netfilter/iptable_raw.ko ../wireguard/iptable_raw-${prefix}$i.ko
+   rm -rf output/build/linux-*
+   versions="$(cat ${base}/versions.txt)"
+   prefix="$(cat ${base}/prefix)"
+   (IFS=','
+   for ver in $versions; do
+	   # Skip building module if already built.
+	   if [ -f "../wireguard/wireguard-${prefix}${ver}.ko" ]; then
+		   echo "Skipping already built wireguard module for version ${prefix}${ver}."
+		   continue
+	   fi
+	   # Cleanup if current base is different than last base used.
+	   if [ "${base}" != "${last_base_used}" ]; then
+		   rm -rf output/build/linux-*
+		   echo "${base}" > base-version
+		   last_base_used=${base}
+	   fi
+	   echo "Building kernel version ${prefix}${ver} using base ${base}."
+	   make wireguard-linux-compat-dirclean
+	   sed -i -e '/CONFIG_LOCALVERSION=/s/.*/CONFIG_LOCALVERSION="'$ver'"/' UDM-config.txt
+	   make wireguard-linux-compat-rebuild -j6
+	   cp ./output/build/wireguard-linux-compat-1.0.20210606/src/wireguard.ko ../wireguard/wireguard-${prefix}${ver}.ko
+	   # the netfiler raw module is required in the wg-quick script for iptables-restore
+	   cp ./output/build/linux-custom/net/ipv4/netfilter/iptable_raw.ko ../wireguard/iptable_raw-${prefix}${ver}.ko
+	   cp ./output/build/linux-custom/net/ipv6/netfilter/ip6table_raw.ko ../wireguard/ip6table_raw-${prefix}${ver}.ko
+   done)
 done
 
 # Build utilities if not previously built.
