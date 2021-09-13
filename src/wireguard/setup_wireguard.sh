@@ -44,8 +44,14 @@ if [ $? -eq 1 ]
 then
    ver=`uname -r`
    echo "loading wireguard..."
-   insmod $WIREGUARD/wireguard-$ver.ko
-# iptable_raw required for wg-quick's use of iptables-restore
-   insmod $WIREGUARD/iptable_raw-$ver.ko
-   insmod $WIREGUARD/ip6table_raw-$ver.ko
+   if [ -e /lib/modules/$ver/extra/wireguard.ko ]; then
+      modprobe wireguard
+   elif [ -e $WIREGUARD/wireguard-$ver.ko ]; then
+     insmod $WIREGUARD/wireguard-$ver.ko
+#    iptable_raw required for wg-quick's use of iptables-restore
+     insmod $WIREGUARD/iptable_raw-$ver.ko
+     insmod $WIREGUARD/ip6table_raw-$ver.ko
+   else
+     echo "Unsupported Kernel version $ver"
+   fi
 fi
