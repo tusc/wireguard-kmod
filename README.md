@@ -28,7 +28,7 @@ The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 
 1. We first need to download the tar file onto the UDM. Connect to it via SSH and type the following command to download the tar file. You need to download the following tar file. NOTE: always [this link](https://github.com/tusc/wireguard-kmod/releases) check for the latest release.
 
     ```sh
-    curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/releases/download/v8-10-21/wireguard-kmod-08-10-21.tar.Z
+    curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/releases/download/v10-14-21/wireguard-kmod-10-14-21.tar.Z
     ```
 
 2. From this directory type the following, it will extract the files to the /mnt/data/wireguard path:

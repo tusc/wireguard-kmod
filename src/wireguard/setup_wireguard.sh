@@ -9,10 +9,10 @@
 # v6-23-21	Added support for resolvconf
 WIREGUARD="/mnt/data/wireguard"
 
-ln -s $WIREGUARD/usr/bin/wg-quick /usr/bin
-ln -s $WIREGUARD/usr/bin/wg /usr/bin
+ln -sf $WIREGUARD/usr/bin/wg-quick /usr/bin
+ln -sf $WIREGUARD/usr/bin/wg /usr/bin
 ln -s $WIREGUARD/usr/bin/bash /bin
-ln -s $WIREGUARD/usr/bin/qrencode /usr/bin
+ln -sf $WIREGUARD/usr/bin/qrencode /usr/bin
 ln -s $WIREGUARD/usr/bin/htop /usr/bin
 ln -s $WIREGUARD/usr/sbin/iftop /usr/sbin
 ln -s $WIREGUARD/sbin/resolvconf /sbin
