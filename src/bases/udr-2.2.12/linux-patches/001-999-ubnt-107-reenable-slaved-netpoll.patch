@@ -1,0 +1,24 @@
+--- a/net/core/netpoll.c
++++ b/net/core/netpoll.c
+@@ -673,19 +673,21 @@ int netpoll_setup(struct netpoll *np)
+ 	if (!ndev) {
+ 		np_err(np, "%s doesn't exist, aborting\n", np->dev_name);
+ 		err = -ENODEV;
+ 		goto unlock;
+ 	}
+ 	dev_hold(ndev);
+ 
++#if 0
+ 	if (netdev_master_upper_dev_get(ndev)) {
+ 		np_err(np, "%s is a slave device, aborting\n", np->dev_name);
+ 		err = -EBUSY;
+ 		goto put;
+ 	}
++#endif
+ 
+ 	if (!netif_running(ndev)) {
+ 		unsigned long atmost, atleast;
+ 
+ 		np_info(np, "device %s not up yet, forcing it\n", np->dev_name);
+ 
+ 		err = dev_open(ndev);

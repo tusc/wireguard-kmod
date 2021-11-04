@@ -1,0 +1,67 @@
+commit 96e97bc07e90f175a8980a22827faf702ca4cb30
+Author: Jakub Kicinski <kuba@kernel.org>
+Date:   Wed Aug 26 12:40:06 2020 -0700
+
+    net: disable netpoll on fresh napis
+    
+    napi_disable() makes sure to set the NAPI_STATE_NPSVC bit to prevent
+    netpoll from accessing rings before init is complete. However, the
+    same is not done for fresh napi instances in netif_napi_add(),
+    even though we expect NAPI instances to be added as disabled.
+    
+    This causes crashes during driver reconfiguration (enabling XDP,
+    changing the channel count) - if there is any printk() after
+    netif_napi_add() but before napi_enable().
+    
+    To ensure memory ordering is correct we need to use RCU accessors.
+    
+    Reported-by: Rob Sherwood <rsher@fb.com>
+    Fixes: 2d8bff12699a ("netpoll: Close race condition between poll_one_napi and napi_disable")
+    Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+    Signed-off-by: David S. Miller <davem@davemloft.net>
+
+--- a/net/core/dev.c
++++ b/net/core/dev.c
+@@ -4865,21 +4865,22 @@ void netif_napi_add(struct net_device *d
+ 	napi->gro_list = NULL;
+ 	napi->skb = NULL;
+ 	napi->poll = poll;
+ 	if (weight > NAPI_POLL_WEIGHT)
+ 		pr_err_once("netif_napi_add() called with weight %d on device %s\n",
+ 			    weight, dev->name);
+ 	napi->weight = weight;
+-	list_add(&napi->dev_list, &dev->napi_list);
+ 	napi->dev = dev;
+ #ifdef CONFIG_NETPOLL
+ 	spin_lock_init(&napi->poll_lock);
+ 	napi->poll_owner = -1;
+ #endif
+ 	set_bit(NAPI_STATE_SCHED, &napi->state);
++	set_bit(NAPI_STATE_NPSVC, &napi->state);
++	list_add_rcu(&napi->dev_list, &dev->napi_list);
+ }
+ EXPORT_SYMBOL(netif_napi_add);
+ 
+ void napi_disable(struct napi_struct *n)
+ {
+ 	might_sleep();
+ 	set_bit(NAPI_STATE_DISABLE, &n->state);
+--- a/net/core/netpoll.c
++++ b/net/core/netpoll.c
+@@ -174,15 +174,15 @@ static void poll_one_napi(struct napi_st
+ 	clear_bit(NAPI_STATE_NPSVC, &napi->state);
+ }
+ 
+ static void poll_napi(struct net_device *dev)
+ {
+ 	struct napi_struct *napi;
+ 
+-	list_for_each_entry(napi, &dev->napi_list, dev_list) {
++	list_for_each_entry_rcu(napi, &dev->napi_list, dev_list) {
+ 		if (napi->poll_owner != smp_processor_id() &&
+ 		    spin_trylock(&napi->poll_lock)) {
+ 			poll_one_napi(napi);
+ 			spin_unlock(&napi->poll_lock);
+ 		}
+ 	}
+ }

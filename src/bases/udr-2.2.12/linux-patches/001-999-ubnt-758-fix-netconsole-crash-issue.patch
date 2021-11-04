@@ -1,0 +1,65 @@
+--- a/drivers/net/netconsole.c
++++ b/drivers/net/netconsole.c
+@@ -863,14 +863,15 @@ static void cipher_work_done(struct cryp
+ 
+ #ifdef UI_ENCRYPT_DEBUG
+ 	if (!once) {
+ 		UI_ENCRYPT_DEBUG_PRINT("\n");
+ 		once = 1;
+ 	}
+ #endif
++	result->err = error;
+ 	complete(&result->completion);
+ }
+ 
+ static void ui_bump_gcm_iv(void)
+ {
+ 	int i;
+ 	for (i = sizeof(g_gcm_aad->iv) - 1; i >= 0; i--) {
+@@ -883,21 +884,22 @@ static void ui_bump_gcm_iv(void)
+ static int ui_init_crypt(u8 *key, u8 *hashid)
+ {
+ 	int ret;
+ 
+ 	/* Init transformation object and request object */
+ 	g_ptr_tfm = crypto_alloc_aead("gcm(aes)", 0, 0);
+ 	if (IS_ERR(g_ptr_tfm)) {
+-		return PTR_ERR(g_ptr_tfm);
+-	}
++		g_ptr_tfm = NULL;
++		goto fail;
++ 	}
+ 	crypto_init_wait(&g_ui_result);
+ 	g_ptr_req = aead_request_alloc(g_ptr_tfm, GFP_KERNEL);
+ 	if (IS_ERR(g_ptr_req)) {
+-		crypto_free_aead(g_ptr_tfm);
+-		return PTR_ERR(g_ptr_req);
++		g_ptr_req = NULL;
++		goto fail;
+ 	}
+ 	aead_request_set_callback(g_ptr_req, CRYPTO_TFM_REQ_MAY_BACKLOG,
+ 			cipher_work_done, &g_ui_result);
+ 	/* Init set_authsize generate IV */
+ 	/* Init g_gcm_aad Data
+ 	 * A. Magic Number Version Flags
+ 	 * B. add hashid */
+@@ -1214,15 +1216,18 @@ static int __init init_netconsole(void)
+ 			spin_lock_irqsave(&target_list_lock, flags);
+ 			list_add(&nt->list, &target_list);
+ 			spin_unlock_irqrestore(&target_list_lock, flags);
+ 		}
+ 	}
+ 
+ 	if (nt->np.encrypt) {
+-		ui_init_crypt(nt->np.gcm_keyval, nt->np.hashid);
++		err = ui_init_crypt(nt->np.gcm_keyval, nt->np.hashid);
++		if (err)
++			goto fail;
++
+ #ifdef UI_ENCRYPT_DEBUG
+ 
+ 		UI_ENCRYPT_DEBUG_PRINT("perform test encryption and decryption\n");
+ 		ret = ui_encrypt(testbuf, sizeof(testbuf), &cipher, &cipherdata_len);
+ 		UI_ENCRYPT_DEBUG_PRINT("ret:%d plainlen:%d cipher:%p ciph_len:%d\n",
+ 				ret, sizeof(testbuf), cipher, cipherdata_len);
+ 		UI_ENCRYPT_DEBUG_DUMP("cipher: ", DUMP_PREFIX_NONE, cipher, cipherdata_len);

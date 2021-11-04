@@ -1,0 +1,90 @@
+--- a/include/uapi/linux/sockios.h
++++ b/include/uapi/linux/sockios.h
+@@ -136,14 +136,15 @@
+  *	as their own. Because these are device dependent it is a good idea
+  *	_NOT_ to issue them to random objects and hope.
+  *
+  *	THESE IOCTLS ARE _DEPRECATED_ AND WILL DISAPPEAR IN 2.5.X -DaveM
+  */
+  
+ #define SIOCDEVPRIVATE	0x89F0	/* to 89FF */
++#define SIOC_PRIVATE_IOCTLS 0x100
+ 
+ /*
+  *	These 16 ioctl calls are protocol private
+  */
+  
+ #define SIOCPROTOPRIVATE 0x89E0 /* to 89EF */
+ #endif	/* _LINUX_SOCKIOS_H */
+--- a/net/core/dev_ioctl.c
++++ b/net/core/dev_ioctl.c
+@@ -314,15 +314,15 @@ static int dev_ifsioc(struct net *net, s
+ 		/* fall through */
+ 
+ 	/*
+ 	 *	Unknown or private ioctl
+ 	 */
+ 	default:
+ 		if ((cmd >= SIOCDEVPRIVATE &&
+-		    cmd <= SIOCDEVPRIVATE + 15) ||
++		    cmd <= SIOCDEVPRIVATE + SIOC_PRIVATE_IOCTLS) ||
+ 		    cmd == SIOCBONDENSLAVE ||
+ 		    cmd == SIOCBONDRELEASE ||
+ 		    cmd == SIOCBONDSETHWADDR ||
+ 		    cmd == SIOCBONDSLAVEINFOQUERY ||
+ 		    cmd == SIOCBONDINFOQUERY ||
+ 		    cmd == SIOCBONDCHANGEACTIVE ||
+ 		    cmd == SIOCGMIIPHY ||
+@@ -546,15 +546,15 @@ int dev_ioctl(struct net *net, unsigned
+ 	/*
+ 	 *	Unknown or private ioctl.
+ 	 */
+ 	default:
+ 		if (cmd == SIOCWANDEV ||
+ 		    cmd == SIOCGHWTSTAMP ||
+ 		    (cmd >= SIOCDEVPRIVATE &&
+-		     cmd <= SIOCDEVPRIVATE + 15)) {
++		     cmd <= SIOCDEVPRIVATE + SIOC_PRIVATE_IOCTLS)) {
+ 			dev_load(net, ifr.ifr_name);
+ 			rtnl_lock();
+ 			ret = dev_ifsioc(net, &ifr, cmd);
+ 			rtnl_unlock();
+ 			if (!ret && copy_to_user(arg, &ifr,
+ 						 sizeof(struct ifreq)))
+ 				ret = -EFAULT;
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -893,15 +893,15 @@ static long sock_ioctl(struct file *file
+ 	void __user *argp = (void __user *)arg;
+ 	int pid, err;
+ 	struct net *net;
+ 
+ 	sock = file->private_data;
+ 	sk = sock->sk;
+ 	net = sock_net(sk);
+-	if (cmd >= SIOCDEVPRIVATE && cmd <= (SIOCDEVPRIVATE + 15)) {
++	if (cmd >= SIOCDEVPRIVATE && cmd <= (SIOCDEVPRIVATE + SIOC_PRIVATE_IOCTLS)) {
+ 		err = dev_ioctl(net, cmd, argp);
+ 	} else
+ #ifdef CONFIG_WEXT_CORE
+ 	if (cmd >= SIOCIWFIRST && cmd <= SIOCIWLAST) {
+ 		err = dev_ioctl(net, cmd, argp);
+ 	} else
+ #endif
+@@ -3067,15 +3067,15 @@ static int old_bridge_ioctl(compat_ulong
+ static int compat_sock_ioctl_trans(struct file *file, struct socket *sock,
+ 			 unsigned int cmd, unsigned long arg)
+ {
+ 	void __user *argp = compat_ptr(arg);
+ 	struct sock *sk = sock->sk;
+ 	struct net *net = sock_net(sk);
+ 
+-	if (cmd >= SIOCDEVPRIVATE && cmd <= (SIOCDEVPRIVATE + 15))
++	if (cmd >= SIOCDEVPRIVATE && cmd <= (SIOCDEVPRIVATE + SIOC_PRIVATE_IOCTLS))
+ 		return compat_ifr_data_ioctl(net, cmd, argp);
+ 
+ 	switch (cmd) {
+ 	case SIOCSIFBR:
+ 	case SIOCGIFBR:
+ 		return old_bridge_ioctl(argp);
+ 	case SIOCGIFNAME:

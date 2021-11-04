@@ -1,0 +1,32 @@
+--- a/net/core/dev_ioctl.c
++++ b/net/core/dev_ioctl.c
+@@ -547,14 +547,29 @@ int dev_ioctl(struct net *net, unsigned
+ 	 *	Unknown or private ioctl.
+ 	 */
+ 	default:
+ 		if (cmd == SIOCWANDEV ||
+ 		    cmd == SIOCGHWTSTAMP ||
+ 		    (cmd >= SIOCDEVPRIVATE &&
+ 		     cmd <= SIOCDEVPRIVATE + SIOC_PRIVATE_IOCTLS)) {
++			/* Since the size of iwreq is not same as ifreq for 64bit platform
++			 * , it may cause copy_to_user size not consistent with user space */
++			{
++				struct net_device *dev = NULL;
++				rcu_read_lock();
++				dev = dev_get_by_name_rcu(net, ifr.ifr_name);
++				rcu_read_unlock();
++				if (dev && (dev->ieee80211_ptr != NULL)) {
++					if (cmd >= SIOCDEVPRIVATE &&
++					    cmd <= SIOCDEVPRIVATE + SIOC_PRIVATE_IOCTLS) {
++						return wext_handle_ioctl(net, &ifr, cmd, arg);
++					}
++				}
++			}
++
+ 			dev_load(net, ifr.ifr_name);
+ 			rtnl_lock();
+ 			ret = dev_ifsioc(net, &ifr, cmd);
+ 			rtnl_unlock();
+ 			if (!ret && copy_to_user(arg, &ifr,
+ 						 sizeof(struct ifreq)))
+ 				ret = -EFAULT;

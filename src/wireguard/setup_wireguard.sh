@@ -7,7 +7,13 @@
 # v4-10-21	Updated release to include utils such as htop, iftop and qrencode. The last one allows easy import of wireguard configs
 #		into your IOS/Android WireGuard client using QR codes. 
 # v6-23-21	Added support for resolvconf
-WIREGUARD="/mnt/data/wireguard"
+DATA_DIR="."
+if [ -d "/mnt/data" ]; then
+	DATA_DIR="/mnt/data"
+elif [ -d "/data" ]; then
+	DATA_DIR="/data"
+fi
+WIREGUARD="${DATA_DIR}/wireguard"
 
 ln -sf $WIREGUARD/usr/bin/wg-quick /usr/bin
 ln -sf $WIREGUARD/usr/bin/wg /usr/bin
@@ -20,7 +26,7 @@ ln -s $WIREGUARD/sbin/resolvconf /sbin
 # create symlink to wireguard config folder
 if [ ! -d "/etc/wireguard" ]
 then
-   ln -s $WIREGUARD/etc/wireguard /etc/wireguard
+   ln -sf $WIREGUARD/etc/wireguard /etc/wireguard
 fi
 
 # create symlink to resolvconf config file
@@ -46,11 +52,11 @@ then
    echo "loading wireguard..."
    if [ -e /lib/modules/$ver/extra/wireguard.ko ]; then
       modprobe wireguard
-   elif [ -e $WIREGUARD/wireguard-$ver.ko ]; then
-     insmod $WIREGUARD/wireguard-$ver.ko
+   elif [ -e $WIREGUARD/modules/wireguard-$ver.ko ]; then
+     insmod $WIREGUARD/modules/wireguard-$ver.ko
 #    iptable_raw required for wg-quick's use of iptables-restore
-     insmod $WIREGUARD/iptable_raw-$ver.ko
-     insmod $WIREGUARD/ip6table_raw-$ver.ko
+     insmod $WIREGUARD/modules/iptable_raw-$ver.ko
+     insmod $WIREGUARD/modules/ip6table_raw-$ver.ko
    else
      echo "Unsupported Kernel version $ver"
    fi

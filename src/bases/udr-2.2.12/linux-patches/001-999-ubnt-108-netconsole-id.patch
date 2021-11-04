@@ -1,0 +1,56 @@
+--- a/drivers/net/netconsole.c
++++ b/drivers/net/netconsole.c
+@@ -840,28 +840,53 @@ static void write_ext_msg(struct console
+ 	spin_lock_irqsave(&target_list_lock, flags);
+ 	list_for_each_entry(nt, &target_list, list)
+ 		if (nt->extended && nt->enabled && netif_running(nt->np.dev))
+ 			send_ext_msg_udp(nt, msg, len);
+ 	spin_unlock_irqrestore(&target_list_lock, flags);
+ }
+ 
++static uint16_t random_id;
++static uint16_t (*ubnthal_get_systemid)(void) = NULL;
++static char netconsole_msg[270];
++
+ static void write_msg(struct console *con, const char *msg, unsigned int len)
+ {
+ 	int frag, left;
+ 	unsigned long flags;
+ 	struct netconsole_target *nt;
+ 	const char *tmp;
+ 
+ 	if (oops_only && !oops_in_progress)
+ 		return;
+ 	/* Avoid taking lock and disabling interrupts unnecessarily */
+ 	if (list_empty(&target_list))
+ 		return;
+ 
++	if (random_id == 0)
++		get_random_bytes(&random_id, 2);
++
++	if (!ubnthal_get_systemid) {
++		const struct kernel_symbol *sym;
++		if ((sym = find_symbol("ubnthal_get_systemid", NULL, NULL, 1, 0))) {
++			ubnthal_get_systemid = (void *)sym->value;
++		}
++	}
++
+ 	spin_lock_irqsave(&target_list_lock, flags);
++
++	if (len <= sizeof(netconsole_msg) - 16) {
++		uint16_t systemid = 0;
++
++		if (ubnthal_get_systemid)
++			systemid = ubnthal_get_systemid();
++		len = sprintf(netconsole_msg, "{%04x %04x} %.*s", random_id, systemid, len, msg);
++
++		msg = netconsole_msg;
++	}
++
+ 	list_for_each_entry(nt, &target_list, list) {
+ 		if (!nt->extended && nt->enabled && netif_running(nt->np.dev)) {
+ 			/*
+ 			 * We nest this inside the for-each-target loop above
+ 			 * so that we're able to get as much logging out to
+ 			 * at least one target if we die inside here, instead
+ 			 * of unnecessarily keeping all targets in lock-step.

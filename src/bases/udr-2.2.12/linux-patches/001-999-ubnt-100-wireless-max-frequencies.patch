@@ -1,0 +1,19 @@
+--- a/include/uapi/linux/wireless.h
++++ b/include/uapi/linux/wireless.h
+@@ -417,15 +417,15 @@
+  * Note : if the number of args is fixed and the size < 16 octets,
+  * instead of passing a pointer we will put args in the iwreq struct...
+  */
+ 
+ /* ----------------------- OTHER CONSTANTS ----------------------- */
+ 
+ /* Maximum frequencies in the range struct */
+-#define IW_MAX_FREQUENCIES	32
++#define IW_MAX_FREQUENCIES	255
+ /* Note : if you have something like 80 frequencies,
+  * don't increase this constant and don't fill the frequency list.
+  * The user will be able to set by channel anyway... */
+ 
+ /* Maximum bit rates in the range struct */
+ #define IW_MAX_BITRATES		32
+ 

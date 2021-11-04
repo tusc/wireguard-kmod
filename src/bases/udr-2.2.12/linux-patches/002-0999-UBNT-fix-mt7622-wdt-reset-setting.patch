@@ -1,0 +1,37 @@
+--- a/drivers/watchdog/mtk_wdt.c
++++ b/drivers/watchdog/mtk_wdt.c
+@@ -63,14 +63,15 @@
+ #define WDT_MODE_EXT_POL_LOW	(0 << 1)
+ #define WDT_MODE_EXT_POL_HIGH	(1 << 1)
+ #define WDT_MODE_EXRST_EN	(1 << 2)
+ #define WDT_MODE_IRQ_EN		(1 << 3)
+ #define WDT_MODE_AUTO_START	(1 << 4)
+ #define WDT_MODE_IRQ_LVL	(1 << 5)
+ #define WDT_MODE_DUAL_EN	(1 << 6)
++#define WDT_MODE_DDR_RESV_MODE  (1 << 7)
+ #define WDT_MODE_KEY		0x22000000
+ 
+ #define WDT_STATUS		0x0c
+ #define WDT_NONRST_REG		0x20
+ #define WDT_NONRST_REG2		0x24
+ 
+ #define WDT_SWRST		0x14
+@@ -293,16 +294,16 @@ static int mtk_wdt_start(struct watchdog
+ 	int ret;
+ 
+ 	ret = mtk_wdt_set_timeout(wdt_dev, wdt_dev->timeout);
+ 	if (ret < 0)
+ 		return ret;
+ 
+ 	reg = ioread32(wdt_base + WDT_MODE);
+-	reg |= (WDT_MODE_DUAL_EN | WDT_MODE_IRQ_EN | WDT_MODE_EXRST_EN);
+-	reg &= ~(WDT_MODE_IRQ_LVL | WDT_MODE_EXT_POL_HIGH);
++	reg |= (WDT_MODE_DDR_RESV_MODE | WDT_MODE_DUAL_EN | WDT_MODE_IRQ_EN);
++	reg &= ~(WDT_MODE_IRQ_LVL | WDT_MODE_EXT_POL_HIGH | WDT_MODE_EXRST_EN);
+ 	reg |= (WDT_MODE_EN | WDT_MODE_KEY);
+ 	iowrite32(reg, wdt_base + WDT_MODE);
+ 
+ 	return 0;
+ }
+ 
+ static const struct watchdog_info mtk_wdt_info = {
