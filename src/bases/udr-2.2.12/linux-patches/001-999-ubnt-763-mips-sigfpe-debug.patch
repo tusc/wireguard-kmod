@@ -1,0 +1,20 @@
+--- a/arch/mips/kernel/traps.c
++++ b/arch/mips/kernel/traps.c
+@@ -910,14 +910,17 @@ void do_trap_or_bp(struct pt_regs *regs,
+ 		die_if_kernel(b, regs);
+ 		if (code == BRK_DIVZERO)
+ 			info.si_code = FPE_INTDIV;
+ 		else
+ 			info.si_code = FPE_INTOVF;
+ 		info.si_signo = SIGFPE;
+ 		info.si_addr = (void __user *) regs->cp0_epc;
++		pr_err("SIGFPE(%s) in %s: epc: 0x%lx, ra: 0x%lx\n",
++			(code == BRK_DIVZERO) ? "div0" : "overflow",
++			current->comm, regs->cp0_epc, regs->regs[31]);
+ 		force_sig_info(SIGFPE, &info, current);
+ 		break;
+ 	case BRK_BUG:
+ 		die_if_kernel("Kernel bug detected", regs);
+ 		force_sig(SIGTRAP, current);
+ 		break;
+ 	case BRK_MEMU:

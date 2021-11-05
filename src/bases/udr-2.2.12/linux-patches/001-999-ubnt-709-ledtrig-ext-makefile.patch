@@ -1,0 +1,29 @@
+--- a/drivers/leds/trigger/Kconfig
++++ b/drivers/leds/trigger/Kconfig
+@@ -122,8 +122,15 @@ config LEDS_TRIGGER_PANIC
+ 	help
+ 	  This allows LEDs to be configured to blink on a kernel panic.
+ 	  Enabling this option will allow to mark certain LEDs as panic indicators,
+ 	  allowing to blink them on a kernel panic, even if they are set to
+ 	  a different trigger.
+ 	  If unsure, say Y.
+ 
++config LEDS_TRIGGER_EXTERNAL
++	tristate "LED External Trigger"
++	depends on LEDS_TRIGGERS
++	help
++	  This allows LEDs to be controlled by external trigger.
++	  If unsure, say Y.
++
+ endif # LEDS_TRIGGERS
+--- a/drivers/leds/trigger/Makefile
++++ b/drivers/leds/trigger/Makefile
+@@ -6,7 +6,8 @@ obj-$(CONFIG_LEDS_TRIGGER_HEARTBEAT)	+=
+ obj-$(CONFIG_LEDS_TRIGGER_BACKLIGHT)	+= ledtrig-backlight.o
+ obj-$(CONFIG_LEDS_TRIGGER_GPIO)		+= ledtrig-gpio.o
+ obj-$(CONFIG_LEDS_TRIGGER_CPU)		+= ledtrig-cpu.o
+ obj-$(CONFIG_LEDS_TRIGGER_DEFAULT_ON)	+= ledtrig-default-on.o
+ obj-$(CONFIG_LEDS_TRIGGER_TRANSIENT)	+= ledtrig-transient.o
+ obj-$(CONFIG_LEDS_TRIGGER_CAMERA)	+= ledtrig-camera.o
+ obj-$(CONFIG_LEDS_TRIGGER_PANIC)	+= ledtrig-panic.o
++obj-$(CONFIG_LEDS_TRIGGER_EXTERNAL)    += ledtrig-ext.o

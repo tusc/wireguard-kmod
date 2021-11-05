@@ -1,0 +1,18 @@
+--- a/usr/Makefile
++++ b/usr/Makefile
+@@ -1,14 +1,15 @@
+ #
+ # kbuild file for usr/ - including initramfs image
+ #
+ 
+ klibcdirs:;
+ PHONY += klibcdirs
+ 
++export CCACHE_DISABLE=1
+ 
+ # Bzip2
+ suffix_$(CONFIG_RD_BZIP2)  = .bz2
+ 
+ # Lzma
+ suffix_$(CONFIG_RD_LZMA)   = .lzma
+ 

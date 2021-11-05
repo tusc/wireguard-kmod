@@ -1,0 +1,21 @@
+--- a/net/bluetooth/hci_event.c
++++ b/net/bluetooth/hci_event.c
+@@ -4956,15 +4956,17 @@ static void hci_le_remote_feat_complete_
+ 			    !conn->out && ev->status == 0x1a)
+ 				status = 0x00;
+ 			else
+ 				status = ev->status;
+ 
+ 			conn->state = BT_CONNECTED;
+ 			hci_connect_cfm(conn, status);
+-			hci_conn_drop(conn);
++			//WORKAROUND: The funciton cause ble slave disconnect after 2s when it connect to a master
++			//The older kernel doesn't do the following action.
++			//hci_conn_drop(conn);
+ 		}
+ 	}
+ 
+ 	hci_dev_unlock(hdev);
+ }
+ 
+ static void hci_le_ltk_request_evt(struct hci_dev *hdev, struct sk_buff *skb)

@@ -1,0 +1,81 @@
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -31,15 +31,16 @@
+ #include <linux/phy.h>
+ #include <linux/timer.h>
+ #include <linux/workqueue.h>
+ #include <linux/mdio.h>
+ #include <linux/io.h>
+ #include <linux/uaccess.h>
+ #include <linux/atomic.h>
+-
++#include <net/netlink.h>
++#include <linux/rtnetlink.h>
+ #include <asm/irq.h>
+ 
+ static const char *phy_speed_to_str(int speed)
+ {
+ 	switch (speed) {
+ 	case SPEED_10:
+ 		return "10Mbps";
+@@ -1275,7 +1276,40 @@ EXPORT_SYMBOL(phy_ethtool_set_wol);
+ 
+ void phy_ethtool_get_wol(struct phy_device *phydev, struct ethtool_wolinfo *wol)
+ {
+ 	if (phydev->drv->get_wol)
+ 		phydev->drv->get_wol(phydev, wol);
+ }
+ EXPORT_SYMBOL(phy_ethtool_get_wol);
++
++void ubnt_net_notify(void *net, int group, int nlmsgtype,
++			void *data, int size)
++{
++	struct sk_buff *skb = NULL;
++	struct nlmsghdr *nlh = NULL;
++	struct phymsg *msg = NULL;
++	struct net *ndev = (struct net *)net;
++	int err = -ENOBUFS;
++
++	skb = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_ATOMIC);
++	if (!skb)
++		goto errout;
++
++	nlh = nlmsg_put(skb, 0, 0, nlmsgtype, sizeof(struct phymsg), 0);
++	if (!nlh) {
++		err = -EMSGSIZE;
++		kfree_skb(skb);
++		goto errout;
++	}
++
++	msg = nlmsg_data(nlh);
++	memcpy(msg, (struct phymsg *)data, sizeof(*msg));
++	nlmsg_end(skb, nlh);
++
++	rtnl_notify(skb, ndev, 0, group, NULL, GFP_ATOMIC);
++	return;
++errout:
++	if (err < 0)
++		rtnl_set_sk_err(ndev, RTNLGRP_NEIGH, err);
++}
++EXPORT_SYMBOL(ubnt_net_notify);
++
+--- a/include/linux/phy.h
++++ b/include/linux/phy.h
+@@ -826,15 +826,16 @@ int phy_register_fixup_for_uid(u32 phy_u
+ int phy_init_eee(struct phy_device *phydev, bool clk_stop_enable);
+ int phy_get_eee_err(struct phy_device *phydev);
+ int phy_ethtool_set_eee(struct phy_device *phydev, struct ethtool_eee *data);
+ int phy_ethtool_get_eee(struct phy_device *phydev, struct ethtool_eee *data);
+ int phy_ethtool_set_wol(struct phy_device *phydev, struct ethtool_wolinfo *wol);
+ void phy_ethtool_get_wol(struct phy_device *phydev,
+ 			 struct ethtool_wolinfo *wol);
+-
++void ubnt_net_notify(void *net, int group, int nlmsgtype,
++                        void *data, int size);
+ int __init mdio_bus_init(void);
+ void mdio_bus_exit(void);
+ 
+ extern struct bus_type mdio_bus_type;
+ 
+ /**
+  * module_phy_driver() - Helper macro for registering PHY drivers

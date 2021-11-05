@@ -1,0 +1,43 @@
+--- a/drivers/mtd/mtdcore.c
++++ b/drivers/mtd/mtdcore.c
+@@ -1742,14 +1742,27 @@ void *mtd_kmalloc_up_to(const struct mtd
+ 	 * For the last resort allocation allow 'kmalloc()' to do all sorts of
+ 	 * things (write-back, dropping caches, etc) by using GFP_KERNEL.
+ 	 */
+ 	return kmalloc(*size, GFP_KERNEL);
+ }
+ EXPORT_SYMBOL_GPL(mtd_kmalloc_up_to);
+ 
++void mtd_callback_for_each(mtd_callback cb, void *priv)
++{
++	struct mtd_info *mtd;
++	if(cb) {
++		mutex_lock(&mtd_table_mutex);
++		mtd_for_each_device(mtd) {
++			cb(mtd, priv);
++		}
++		mutex_unlock(&mtd_table_mutex);
++	}
++}
++EXPORT_SYMBOL(mtd_callback_for_each);
++
+ #ifdef CONFIG_PROC_FS
+ 
+ /*====================================================================*/
+ /* Support for /proc/mtd */
+ 
+ static int mtd_proc_show(struct seq_file *m, void *v)
+ {
+--- a/include/linux/mtd/mtd.h
++++ b/include/linux/mtd/mtd.h
+@@ -497,8 +497,10 @@ static inline int mtd_is_eccerr(int err)
+ 
+ static inline int mtd_is_bitflip_or_eccerr(int err) {
+ 	return mtd_is_bitflip(err) || mtd_is_eccerr(err);
+ }
+ 
+ unsigned mtd_mmap_capabilities(struct mtd_info *mtd);
+ 
++typedef void (*mtd_callback)(struct mtd_info* mtd, void * priv);
++void mtd_callback_for_each(mtd_callback cb, void *priv);
+ #endif /* __MTD_MTD_H__ */

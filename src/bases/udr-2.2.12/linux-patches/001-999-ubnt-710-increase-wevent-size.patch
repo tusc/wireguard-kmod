@@ -1,0 +1,19 @@
+--- a/include/uapi/linux/wireless.h
++++ b/include/uapi/linux/wireless.h
+@@ -546,15 +546,15 @@
+ #define IW_SCAN_CAPA_CHANNEL	0x04
+ #define IW_SCAN_CAPA_MODE		0x08
+ #define IW_SCAN_CAPA_RATE		0x10
+ #define IW_SCAN_CAPA_TYPE		0x20
+ #define IW_SCAN_CAPA_TIME		0x40
+ 
+ /* Max number of char in custom event - use multiple of them if needed */
+-#define IW_CUSTOM_MAX		256	/* In bytes */
++#define IW_CUSTOM_MAX		2048	/* In bytes */
+ 
+ /* Generic information element */
+ #define IW_GENERIC_IE_MAX	1024
+ 
+ /* MLME requests (SIOCSIWMLME / struct iw_mlme) */
+ #define IW_MLME_DEAUTH		0
+ #define IW_MLME_DISASSOC	1

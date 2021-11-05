@@ -16,7 +16,7 @@
 3. Check that the UDM kernel sources downloaded correctly by examining that their file sizes are ~100MB+ each.
 
     ```sh
-    ls -lh linux*tar.gz
+    ls -lh bases/*.tar.gz
     ```
     
     * If the size is a few bytes instead of 100MB, then the kernel sources did not download correctly. This is most probably due to Git LFS not being installed or the LFS quota being exceeded.
@@ -24,11 +24,11 @@
         * https://drive.google.com/drive/folders/11CXRjaGsTSTqfs8LdXQ8YoA7tVY_OuHU
         * https://drive.google.com/drive/folders/1wa8HLSOVnSs6OLLCoyR-YEWIgyUzmvwk
    
-4. The build is divided into multiple kernel bases, where each kernel base is used for multiple UDM versions. Add any custom versions you want to build to the `versions.txt` file in the correct base folder (called `udm-<BASE_VERSION>`).
+4. The build is divided into multiple kernel bases, where each kernel base is used for multiple firmware versions. Add any custom versions you want to build to the `versions.txt` file in the correct base folder (for example `udm-<BASE_VERSION>`).
 
-    * Your UDM's version can be found by running `uname -r` on the UDM and taking the end `-vX.Y.Z.xxxx-yyyyyyy` suffix, where X.Y.Z is your UDM version. Look at the other `versions.txt` files for what it should look like.
+    * Your firmware version can be found by running `uname -r` on the UDM and taking the end `-vX.Y.Z.xxxx-yyyyyyy` suffix, where X.Y.Z is your UDM version. Look at the other `versions.txt` files for what it should look like.
 
-5. Run `build-wireguard.sh` in this directory to build the wireguard module and utilities for each version in `kernel-versions.txt`.
+5. Run `build-wireguard.sh` in this directory to build the wireguard module and utilities for each version in the `versions.txt` files.
 
     ```sh
     ./build-wireguard.sh

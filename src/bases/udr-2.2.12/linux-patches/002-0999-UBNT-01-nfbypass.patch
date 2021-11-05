@@ -1,0 +1,132 @@
+--- a/include/linux/netfilter.h
++++ b/include/linux/netfilter.h
+@@ -217,28 +217,58 @@ static inline int nf_hook(u_int8_t pf, u
+ static inline int
+ NF_HOOK_THRESH(uint8_t pf, unsigned int hook, struct net *net, struct sock *sk,
+ 	       struct sk_buff *skb, struct net_device *in,
+ 	       struct net_device *out,
+ 	       int (*okfn)(struct net *, struct sock *, struct sk_buff *),
+ 	       int thresh)
+ {
+-	int ret = nf_hook_thresh(pf, hook, net, sk, skb, in, out, okfn, thresh);
++	int ret;
++
++    if ((in != NULL && UBNT_IS_NFBYPASS_ENABLE(in)) ||
++        (out != NULL && UBNT_IS_NFBYPASS_ENABLE(out))) {
++        if (hook != NF_INET_PRE_ROUTING &&
++            hook != NF_INET_POST_ROUTING) {
++            return okfn(net, sk, skb);
++        } else {
++            if ((in != NULL && UBNT_IS_NFBYPASS_MARK(in)) ||
++                (out != NULL && UBNT_IS_NFBYPASS_MARK(out)))
++                return okfn(net, sk, skb);
++            else if (ubnt_nfbypass_handler((struct ethhdr *)skb_mac_header(skb)))
++                return okfn(net, sk, skb);
++        }
++    }
++
++	ret = nf_hook_thresh(pf, hook, net, sk, skb, in, out, okfn, thresh);
+ 	if (ret == 1)
+ 		ret = okfn(net, sk, skb);
+ 	return ret;
+ }
+ 
+ static inline int
+ NF_HOOK_COND(uint8_t pf, unsigned int hook, struct net *net, struct sock *sk,
+ 	     struct sk_buff *skb, struct net_device *in, struct net_device *out,
+ 	     int (*okfn)(struct net *, struct sock *, struct sk_buff *),
+ 	     bool cond)
+ {
+ 	int ret;
+ 
++    if ((in != NULL && UBNT_IS_NFBYPASS_ENABLE(in)) ||
++        (out != NULL && UBNT_IS_NFBYPASS_ENABLE(out))) {
++        if (hook != NF_INET_PRE_ROUTING &&
++            hook != NF_INET_POST_ROUTING) {
++            return okfn(net, sk, skb);
++        } else {
++            if ((in != NULL && UBNT_IS_NFBYPASS_MARK(in)) ||
++                (out != NULL && UBNT_IS_NFBYPASS_MARK(out)))
++                return okfn(net, sk, skb);
++            else if (ubnt_nfbypass_handler((struct ethhdr *)skb_mac_header(skb)))
++                return okfn(net, sk, skb);
++        }
++    }
++
+ 	if (!cond ||
+ 	    ((ret = nf_hook_thresh(pf, hook, net, sk, skb, in, out, okfn, INT_MIN)) == 1))
+ 		ret = okfn(net, sk, skb);
+ 	return ret;
+ }
+ 
+ static inline int
+--- a/include/linux/skbuff.h
++++ b/include/linux/skbuff.h
+@@ -795,14 +795,16 @@ static inline bool skb_dst_is_noref(cons
+ 	return (skb->_skb_refdst & SKB_DST_NOREF) && skb_dst(skb);
+ }
+ 
+ static inline struct rtable *skb_rtable(const struct sk_buff *skb)
+ {
+ 	return (struct rtable *)skb_dst(skb);
+ }
++//: UBNT NFBYPASS
++extern int ubnt_nfbypass_handler(struct ethhdr *mac);
+ 
+ void kfree_skb(struct sk_buff *skb);
+ void kfree_skb_list(struct sk_buff *segs);
+ void skb_tx_error(struct sk_buff *skb);
+ void consume_skb(struct sk_buff *skb);
+ void  __kfree_skb(struct sk_buff *skb);
+ extern struct kmem_cache *skbuff_head_cache;
+--- a/net/core/dev.c
++++ b/net/core/dev.c
+@@ -3204,19 +3204,20 @@ static int __dev_queue_xmit(struct sk_bu
+ 	txq = netdev_pick_tx(dev, skb, accel_priv);
+ 	q = rcu_dereference_bh(txq->qdisc);
+ 
+ #ifdef CONFIG_NET_CLS_ACT
+ 	skb->tc_verd = SET_TC_AT(skb->tc_verd, AT_EGRESS);
+ #endif
+ 	trace_net_dev_queue(skb);
+-	if (q->enqueue) {
+-		rc = __dev_xmit_skb(skb, q, dev, txq);
+-		goto out;
++	if (likely(!UBNT_IS_NFBYPASS_MARK(dev))) {
++		if (likely(q->enqueue) && unlikely(!ubnt_nfbypass_handler((struct ethhdr *)skb_mac_header(skb)))) {
++			rc = __dev_xmit_skb(skb, q, dev, txq);
++			goto out;
++		}
+ 	}
+-
+ 	/* The device has no queue. Common case for software devices:
+ 	   loopback, all the sorts of tunnels...
+ 
+ 	   Really, it is unlikely that netif_tx_lock protection is necessary
+ 	   here.  (f.e. loopback and IP tunnels are clean ignoring statistics
+ 	   counters.)
+ 	   However, it is possible, that they rely on protection
+--- a/net/core/skbuff.c
++++ b/net/core/skbuff.c
+@@ -4651,7 +4651,21 @@ fill_page:
+ 	return skb;
+ 
+ failure:
+ 	kfree_skb(skb);
+ 	return NULL;
+ }
+ EXPORT_SYMBOL(alloc_skb_with_frags);
++
++//: UBNT NFBYPASS
++int (*ubnt_nfbypass_hook)(struct ethhdr *mac);
++EXPORT_SYMBOL(ubnt_nfbypass_hook);
++
++int ubnt_nfbypass_handler(struct ethhdr *mac) {
++    int ret = 0;
++
++    if (likely(ubnt_nfbypass_hook))
++        ret = ubnt_nfbypass_hook(mac);
++
++    return ret;
++}
++EXPORT_SYMBOL(ubnt_nfbypass_handler);

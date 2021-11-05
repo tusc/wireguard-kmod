@@ -1,0 +1,258 @@
+--- a/include/net/net_namespace.h
++++ b/include/net/net_namespace.h
+@@ -40,14 +40,21 @@ struct net_generic;
+ struct sock;
+ struct netns_ipvs;
+ 
+ 
+ #define NETDEV_HASHBITS    8
+ #define NETDEV_HASHENTRIES (1 << NETDEV_HASHBITS)
+ 
++#define DCN_IFNAMSIZ	16
++struct dev_cache_node {
++	char			name[DCN_IFNAMSIZ];
++	struct hlist_node	name_hlist;
++	int			ifindex;
++};
++
+ struct net {
+ 	atomic_t		passive;	/* To decided when the network
+ 						 * namespace should be freed.
+ 						 */
+ 	atomic_t		count;		/* To decided when the network
+ 						 *  namespace should be shut down.
+ 						 */
+@@ -75,14 +82,15 @@ struct net {
+ 
+ 	struct sock 		*rtnl;			/* rtnetlink socket */
+ 	struct sock		*genl_sock;
+ 
+ 	struct list_head 	dev_base_head;
+ 	struct hlist_head 	*dev_name_head;
+ 	struct hlist_head	*dev_index_head;
++	struct hlist_head	*dev_cache_head;
+ 	unsigned int		dev_base_seq;	/* protected by rtnl_mutex */
+ 	int			ifindex;
+ 	unsigned int		dev_unreg_count;
+ 
+ 	/* core fib_rules */
+ 	struct list_head	rules_ops;
+ 
+--- a/net/core/dev.c
++++ b/net/core/dev.c
+@@ -200,14 +200,21 @@ static inline struct hlist_head *dev_nam
+ }
+ 
+ static inline struct hlist_head *dev_index_hash(struct net *net, int ifindex)
+ {
+ 	return &net->dev_index_head[ifindex & (NETDEV_HASHENTRIES - 1)];
+ }
+ 
++static inline struct hlist_head *dev_cache_hash(struct net *net, char *name)
++{
++	unsigned int hash = full_name_hash(name, strnlen(name, IFNAMSIZ));
++
++	return &net->dev_cache_head[hash_32(hash, NETDEV_HASHBITS)];
++}
++
+ static inline void rps_lock(struct softnet_data *sd)
+ {
+ #ifdef CONFIG_RPS
+ 	spin_lock(&sd->input_pkt_queue.lock);
+ #endif
+ }
+ 
+@@ -6334,30 +6341,111 @@ int dev_change_proto_down(struct net_dev
+ 		return -EOPNOTSUPP;
+ 	if (!netif_device_present(dev))
+ 		return -ENODEV;
+ 	return ops->ndo_change_proto_down(dev, proto_down);
+ }
+ EXPORT_SYMBOL(dev_change_proto_down);
+ 
++static int dev_cache_index(struct net *net, struct net_device *dev)
++{
++	struct dev_cache_node *cache;
++	struct hlist_head *head = dev_cache_hash(net, dev->name);
++	hlist_for_each_entry(cache, head, name_hlist)
++		if (!strncmp(cache->name, dev->name, IFNAMSIZ)) {
++			return cache->ifindex;
++		}
++
++	return 0;
++}
++
++static void free_dev_cache(struct net *net)
++{
++	struct dev_cache_node *cache;
++	struct hlist_node *node;
++	int i;
++
++	ASSERT_RTNL();
++
++	write_lock_bh(&dev_base_lock);
++	for (i = 0; i < NETDEV_HASHENTRIES; i++) {
++		hlist_for_each_entry_safe(cache, node, &net->dev_cache_head[i], name_hlist) {
++			hlist_del_rcu(&cache->name_hlist);
++			kfree(cache);
++		}
++	}
++	write_unlock_bh(&dev_base_lock);
++}
++
++static int new_cache_index(struct net *net, struct net_device *dev, int ifindex)
++{
++	struct dev_cache_node *cache;
++	int cache_ifindex;
++
++	cache_ifindex = dev_cache_index(net, dev);
++	if (cache_ifindex) {
++		printk("%s: assigned cached ifindex: %d\n", dev->name, cache_ifindex);
++		return cache_ifindex;
++	}
++
++	ASSERT_RTNL();
++
++	write_lock_bh(&dev_base_lock);
++	cache = kmalloc(sizeof(*cache), GFP_KERNEL);
++	if (!cache) {
++		printk("%s: unable to cache ifindex of %d (ENOMEM)\n", dev->name, ifindex);
++		goto out;
++	}
++
++	strlcpy(cache->name, dev->name, IFNAMSIZ);
++	cache->ifindex = ifindex;
++
++	/* ensure no race */
++	cache_ifindex = dev_cache_index(net, dev);
++	if (cache_ifindex != 0) {
++		kfree(cache);
++		ifindex = cache_ifindex;
++		printk("%s: (race) assigned ifindex: %d\n", dev->name, ifindex);
++		goto out;
++	}
++
++	hlist_add_head_rcu(&cache->name_hlist, dev_cache_hash(net, dev->name));
++
++	printk("%s: assigned ifindex: %d\n", dev->name, ifindex);
++
++out:
++	write_unlock_bh(&dev_base_lock);
++	return ifindex;
++}
++
+ /**
+  *	dev_new_index	-	allocate an ifindex
+  *	@net: the applicable net namespace
+  *
+  *	Returns a suitable unique value for a new device interface
+  *	number.  The caller must hold the rtnl semaphore or the
+  *	dev_base_lock to be sure it remains unique.
+  */
+-static int dev_new_index(struct net *net)
++static int dev_new_index(struct net *net, struct net_device *dev)
+ {
+ 	int ifindex = net->ifindex;
++	int new_ifindex;
+ 	for (;;) {
+-		if (++ifindex <= 0)
+-			ifindex = 1;
+-		if (!__dev_get_by_index(net, ifindex))
+-			return net->ifindex = ifindex;
++		if (++ifindex <= 0) {
++			/* wraparound with cached interfaces means a deadlock.  BUG out here */
++			BUG();
++		}
++ 		if (!__dev_get_by_index(net, ifindex)) {
++			new_ifindex = new_cache_index(net, dev, ifindex);
++
++			/* update net->ifindex only if we used that ifindex (otherwise a cached version was returned) */
++			if (new_ifindex == ifindex)
++				net->ifindex = ifindex;
++
++			return new_ifindex;
++		}
+ 	}
+ }
+ 
+ /* Delayed registration/unregisteration */
+ static LIST_HEAD(net_todo_list);
+ DECLARE_WAIT_QUEUE_HEAD(netdev_unregistering_wq);
+ 
+@@ -6816,15 +6904,15 @@ int register_netdevice(struct net_device
+ 		netdev_WARN(dev, "Buggy VLAN acceleration in driver!\n");
+ 		ret = -EINVAL;
+ 		goto err_uninit;
+ 	}
+ 
+ 	ret = -EBUSY;
+ 	if (!dev->ifindex)
+-		dev->ifindex = dev_new_index(net);
++		dev->ifindex = dev_new_index(net, dev);
+ 	else if (__dev_get_by_index(net, dev->ifindex))
+ 		goto err_uninit;
+ 
+ 	/* Transfer changeable features to wanted_features and enable
+ 	 * software offloads (GSO and GRO).
+ 	 */
+ 	dev->hw_features |= NETIF_F_SOFT_FEATURES;
+@@ -7541,15 +7629,15 @@ int dev_change_net_namespace(struct net_
+ 	netdev_adjacent_del_links(dev);
+ 
+ 	/* Actually switch the network namespace */
+ 	dev_net_set(dev, net);
+ 
+ 	/* If there is an ifindex conflict assign a new one */
+ 	if (__dev_get_by_index(net, dev->ifindex))
+-		dev->ifindex = dev_new_index(net);
++		dev->ifindex = dev_new_index(net, dev);
+ 
+ 	/* Send a netdev-add uevent to the new namespace */
+ 	kobject_uevent(&dev->dev.kobj, KOBJ_ADD);
+ 	netdev_adjacent_add_links(dev);
+ 
+ 	/* Fixup kobjects */
+ 	err = device_rename(&dev->dev, dev->name);
+@@ -7690,16 +7778,22 @@ static int __net_init netdev_init(struct
+ 	if (net->dev_name_head == NULL)
+ 		goto err_name;
+ 
+ 	net->dev_index_head = netdev_create_hash();
+ 	if (net->dev_index_head == NULL)
+ 		goto err_idx;
+ 
++	net->dev_cache_head = netdev_create_hash();
++	if (net->dev_cache_head == NULL)
++		goto err_cache;
++
+ 	return 0;
+ 
++err_cache:
++	kfree(net->dev_index_head);
+ err_idx:
+ 	kfree(net->dev_name_head);
+ err_name:
+ 	return -ENOMEM;
+ }
+ 
+ /**
+@@ -7785,14 +7879,19 @@ define_netdev_printk_level(netdev_warn,
+ define_netdev_printk_level(netdev_notice, KERN_NOTICE);
+ define_netdev_printk_level(netdev_info, KERN_INFO);
+ 
+ static void __net_exit netdev_exit(struct net *net)
+ {
+ 	kfree(net->dev_name_head);
+ 	kfree(net->dev_index_head);
++
++	rtnl_lock();
++	free_dev_cache(net);
++	rtnl_unlock();
++	kfree(net->dev_cache_head);
+ }
+ 
+ static struct pernet_operations __net_initdata netdev_net_ops = {
+ 	.init = netdev_init,
+ 	.exit = netdev_exit,
+ };
+ 

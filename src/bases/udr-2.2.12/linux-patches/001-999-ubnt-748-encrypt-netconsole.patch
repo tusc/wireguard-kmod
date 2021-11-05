@@ -1,0 +1,589 @@
+--- a/crypto/blkcipher.c
++++ b/crypto/blkcipher.c
+@@ -318,17 +318,14 @@ int blkcipher_walk_phys(struct blkcipher
+ 	return blkcipher_walk_first(desc, walk);
+ }
+ EXPORT_SYMBOL_GPL(blkcipher_walk_phys);
+ 
+ static int blkcipher_walk_first(struct blkcipher_desc *desc,
+ 				struct blkcipher_walk *walk)
+ {
+-	if (WARN_ON_ONCE(in_irq()))
+-		return -EDEADLK;
+-
+ 	walk->iv = desc->info;
+ 	walk->nbytes = walk->total;
+ 	if (unlikely(!walk->total))
+ 		return 0;
+ 
+ 	walk->buffer = NULL;
+ 	if (unlikely(((unsigned long)walk->iv & walk->alignmask))) {
+--- a/drivers/net/netconsole.c
++++ b/drivers/net/netconsole.c
+@@ -44,14 +44,16 @@
+ #include <linux/moduleparam.h>
+ #include <linux/kernel.h>
+ #include <linux/string.h>
+ #include <linux/netpoll.h>
+ #include <linux/inet.h>
+ #include <linux/configfs.h>
+ #include <linux/etherdevice.h>
++#include <linux/crypto.h>
++#include <crypto/aead.h>
+ 
+ MODULE_AUTHOR("Maintainer: Matt Mackall <mpm@selenic.com>");
+ MODULE_DESCRIPTION("Console driver for network interfaces");
+ MODULE_LICENSE("GPL");
+ 
+ #define MAX_PARAM_LENGTH	256
+ #define MAX_PRINT_CHUNK		1000
+@@ -840,14 +842,274 @@ static void write_ext_msg(struct console
+ 	spin_lock_irqsave(&target_list_lock, flags);
+ 	list_for_each_entry(nt, &target_list, list)
+ 		if (nt->extended && nt->enabled && netif_running(nt->np.dev))
+ 			send_ext_msg_udp(nt, msg, len);
+ 	spin_unlock_irqrestore(&target_list_lock, flags);
+ }
+ 
++struct crypto_wait g_ui_result;
++static int g_ui_encrypt_inited = 0;
++static struct crypto_aead *g_ptr_tfm = NULL;
++static struct aead_request *g_ptr_req = NULL;
++static ui_aad_t *g_gcm_aad = NULL;
++
++static void cipher_work_done(struct crypto_async_request *req, int error)
++{
++	struct crypto_wait *result = (struct crypto_wait*)req->data;
++#ifdef UI_ENCRYPT_DEBUG
++	static int once = 0;
++#endif
++	if (error == -EINPROGRESS)
++		return;
++
++#ifdef UI_ENCRYPT_DEBUG
++	if (!once) {
++		UI_ENCRYPT_DEBUG_PRINT("\n");
++		once = 1;
++	}
++#endif
++	complete(&result->completion);
++}
++
++static void ui_bump_gcm_iv(void)
++{
++	int i;
++	for (i = sizeof(g_gcm_aad->iv) - 1; i >= 0; i--) {
++		g_gcm_aad->iv[i] += 1;
++		if (g_gcm_aad->iv[i] != 0)
++			break;
++	}
++}
++
++static int ui_init_crypt(u8 *key, u8 *hashid)
++{
++	int ret;
++
++	/* Init transformation object and request object */
++	g_ptr_tfm = crypto_alloc_aead("gcm(aes)", 0, 0);
++	if (IS_ERR(g_ptr_tfm)) {
++		return PTR_ERR(g_ptr_tfm);
++	}
++	crypto_init_wait(&g_ui_result);
++	g_ptr_req = aead_request_alloc(g_ptr_tfm, GFP_KERNEL);
++	if (IS_ERR(g_ptr_req)) {
++		crypto_free_aead(g_ptr_tfm);
++		return PTR_ERR(g_ptr_req);
++	}
++	aead_request_set_callback(g_ptr_req, CRYPTO_TFM_REQ_MAY_BACKLOG,
++			cipher_work_done, &g_ui_result);
++	/* Init set_authsize generate IV */
++	/* Init g_gcm_aad Data
++	 * A. Magic Number Version Flags
++	 * B. add hashid */
++	crypto_aead_clear_flags(g_ptr_tfm, ~0);
++
++	ret = crypto_aead_setkey(g_ptr_tfm, key, UI_ENCRYPT_KEY_LENGTH);
++	UI_ENCRYPT_DEBUG_PRINT("setkey ret:%d\n", ret);
++
++	ret = crypto_aead_setauthsize(g_ptr_tfm, UI_ENCRYPT_AUTH_TAG_LENGTH);
++	UI_ENCRYPT_DEBUG_PRINT("setauthsize ret:%d\n", ret);
++
++	/* kernel crypto AES GCM uses a fixed 12-byte (96-bit) IV. */
++	if (crypto_aead_ivsize(g_ptr_tfm) != UI_ENCRYPT_IV_LENGTH) {
++		goto fail;
++	}
++
++	/* Init and add hashid to g_gcm_aad */
++	g_gcm_aad = kmalloc(sizeof(*g_gcm_aad), GFP_KERNEL);
++	if (!g_gcm_aad) {
++		goto fail;
++	}
++	g_gcm_aad->magic[0] = UI_ENCRYPT_MAGIC >> 24 & 0xFF;
++	g_gcm_aad->magic[1] = UI_ENCRYPT_MAGIC >> 16 & 0xFF;
++	g_gcm_aad->magic[2] = UI_ENCRYPT_MAGIC >>  8 & 0xFF;
++	g_gcm_aad->magic[3] = UI_ENCRYPT_MAGIC & 0xFF;
++	g_gcm_aad->version = UI_ENCRYPT_VERSION;
++	g_gcm_aad->flags[0] = 0;
++	g_gcm_aad->flags[1] = 0;
++	g_gcm_aad->flags[2] = 0;
++	g_gcm_aad->flags[3] = UI_ENCRYPT_ENABLE_FLAG;
++
++	memcpy(g_gcm_aad->hashid, hashid, sizeof(g_gcm_aad->hashid));
++	/* Initialize the IV */
++	get_random_bytes(g_gcm_aad->iv, sizeof(g_gcm_aad->iv));
++
++
++	aead_request_set_ad(g_ptr_req, sizeof(*g_gcm_aad));
++
++#ifndef UI_ENCRYPT_DEBUG
++	/* Hold off enabling encrypting to allow the print debug to happen
++	 * prior to encrypting it is enabled in decrypt when debug is on */
++	g_ui_encrypt_inited = 1;
++#endif
++
++	return 0;
++
++fail:
++	if (g_gcm_aad) {
++		kfree(g_gcm_aad);
++		g_gcm_aad = NULL;
++	}
++	if (g_ptr_req) {
++		aead_request_free(g_ptr_req);
++		g_ptr_req = NULL;
++	}
++	if (g_ptr_tfm) {
++		crypto_free_aead(g_ptr_tfm);
++		g_ptr_tfm = NULL;
++	}
++	return -1;
++}
++
++static int ui_encrypt(const char *plaindata, unsigned int len_in, unsigned char **cipherdata, int *cipherdata_len)
++{
++	struct scatterlist plaintext[2];
++	struct scatterlist ciphertext;
++	char *plaindata_buf = NULL;
++	int rc = -1;
++#ifdef UI_ENCRYPT_DEBUG
++	int ii;
++	static int once = 0;
++#endif
++
++	if (!plaindata || !cipherdata || !cipherdata_len) {
++		return -1;
++	}
++	*cipherdata_len = sizeof(*g_gcm_aad) + len_in + UI_ENCRYPT_AUTH_TAG_LENGTH;
++	*cipherdata = kmalloc(*cipherdata_len, GFP_ATOMIC);
++	if (!*cipherdata) {
++		goto fail;
++	}
++
++	/* ARM especially on the UAP-HD wants all sg buffers to be in low memory */
++	plaindata_buf = kmalloc(len_in, GFP_ATOMIC);
++	if (!plaindata_buf) {
++		goto fail;
++	}
++
++	ui_bump_gcm_iv();
++
++	memcpy(*cipherdata, g_gcm_aad, sizeof(*g_gcm_aad));
++	memcpy(plaindata_buf, plaindata, len_in);
++
++	/* Src AAD | plaindata */
++	sg_init_table(plaintext, 2);
++	sg_set_buf(&plaintext[0], g_gcm_aad, sizeof(*g_gcm_aad));
++	sg_set_buf(&plaintext[1], plaindata_buf, len_in);
++
++	/* Dst AAD | cipherdata | Auth Tag
++	 * Note: aead encryption adds authentication tag (UI_ENCRYPT_AUTH_TAG_LENGTH bytes)
++	 * at end of cipherdata. The decrypt will need this.
++	 * &sg, buffer, ptbuflen + (encrypt ? authsize : 0) */
++	sg_init_one(&ciphertext, *cipherdata, *cipherdata_len);
++
++#ifdef UI_ENCRYPT_DEBUG
++	if (!once) {
++		UI_ENCRYPT_DEBUG_PRINT("g_gcm_aad:%p plaindata:%p ciphertext:%p\n",
++				g_gcm_aad, plaindata, *cipherdata);
++		for (ii = 0; ii < 2; ii++) {
++			UI_ENCRYPT_DEBUG_PRINT("in %d pl:%lx off:%x len:%x addr:%x\n", ii,
++					plaintext[ii].page_link,
++					plaintext[ii].offset,
++					plaintext[ii].length,
++					plaintext[ii].dma_address);
++		}
++		UI_ENCRYPT_DEBUG_PRINT("plaintext in: %s\n", plaindata);
++		UI_ENCRYPT_DEBUG_PRINT("out 0 pl:%lx off:%x len:%x addr:%x\n",
++				ciphertext.page_link,
++				ciphertext.offset,
++				ciphertext.length,
++				ciphertext.dma_address);
++
++		/* only print on the first pass */
++		once = 1;
++	}
++#endif
++
++	/* This was done in ui_init_crypt and we reuse the g_ptr_req:
++	 * aead_request_set_ad(g_ptr_req, sizeof(*g_gcm_aad)); */
++	aead_request_set_crypt(g_ptr_req, plaintext, &ciphertext, len_in, g_gcm_aad->iv);
++
++	rc = crypto_wait_req(crypto_aead_encrypt(g_ptr_req), &g_ui_result);
++	kfree(plaindata_buf);
++	if (rc == 0) {
++		return 0;
++	}
++
++fail:
++	if (*cipherdata) {
++		kfree(*cipherdata);
++		*cipherdata = NULL;
++	}
++	*cipherdata_len = 0;
++	return rc;
++}
++
++static int ui_send_encrypted(struct netpoll *np, const char *plaindata, unsigned int len_in)
++{
++	int rc = 0;
++	u8 *cipher_out = NULL;
++	int cipher_out_len = 0;
++
++	if (!g_ui_encrypt_inited)
++		return -1;
++
++	rc = ui_encrypt(plaindata, len_in, &cipher_out, &cipher_out_len);
++	if (rc == 0) {
++		netpoll_send_udp(np, cipher_out, cipher_out_len);
++		kfree(cipher_out);
++	}
++
++	return rc;
++}
++
++#ifdef UI_ENCRYPT_DEBUG
++static int ui_decrypt(u8 *cipherdata, int cipherlen)
++{
++	struct scatterlist plaintext;
++	struct scatterlist ciphertext;
++	int ret;
++	unsigned char *plaindata2 = NULL;
++	int plainlen2 = cipherlen - UI_ENCRYPT_AUTH_TAG_LENGTH;
++
++	plaindata2 = kmalloc(plainlen2, GFP_KERNEL);
++	if (!plaindata2) {
++		return -1;
++	}
++
++	UI_ENCRYPT_DEBUG_DUMP("cipherdata aad: ", DUMP_PREFIX_NONE, cipherdata, sizeof(*g_gcm_aad));
++
++	/* Src AAD | cipherdata | AuthTag (UI_ENCRYPT_AUTH_TAG_LENGTH) */
++	sg_init_one(&ciphertext, cipherdata, cipherlen);
++	/* Dst must include space for AAD */
++	sg_init_one(&plaintext, plaindata2, plainlen2);
++
++	/* We are reusing the req so this only needs to be set once:
++	 * aead_request_set_ad(g_ptr_req, sizeof(*g_gcm_aad)); */
++
++	aead_request_set_crypt(g_ptr_req, &ciphertext, &plaintext,
++			cipherlen - sizeof(*g_gcm_aad), g_gcm_aad->iv);
++	UI_ENCRYPT_DEBUG_PRINT("plaindata2:%p\n", plaindata2);
++	ret = crypto_aead_decrypt(g_ptr_req);
++	UI_ENCRYPT_DEBUG_PRINT("crypto_aead_decrypt ret:%d\n", ret);
++	/* compare plaintexts */
++	if (ret == 0) {
++		UI_ENCRYPT_DEBUG_PRINT("decrypted string: %s\n", plaindata2 + sizeof(*g_gcm_aad));
++	} else {
++		UI_ENCRYPT_DEBUG_PRINT("decrypt failed\n");
++	}
++	if (plaindata2) {
++		kfree(plaindata2);
++	}
++	/* We delay the init flag setting in debug to allow for prints */
++	g_ui_encrypt_inited = 1;
++	return ret;
++}
++#endif
++
+ static uint16_t random_id;
+ static uint16_t (*ubnthal_get_systemid)(void) = NULL;
+ static char netconsole_msg[270];
+ 
+ static void write_msg(struct console *con, const char *msg, unsigned int len)
+ {
+ 	int frag, left;
+@@ -890,15 +1152,19 @@ static void write_msg(struct console *co
+ 			 * so that we're able to get as much logging out to
+ 			 * at least one target if we die inside here, instead
+ 			 * of unnecessarily keeping all targets in lock-step.
+ 			 */
+ 			tmp = msg;
+ 			for (left = len; left;) {
+ 				frag = min(left, MAX_PRINT_CHUNK);
+-				netpoll_send_udp(&nt->np, tmp, frag);
++				if (nt->np.encrypt) {
++					ui_send_encrypted(&nt->np, tmp, frag);
++				} else {
++					netpoll_send_udp(&nt->np, tmp, frag);
++				}
+ 				tmp += frag;
+ 				left -= frag;
+ 			}
+ 		}
+ 	}
+ 	spin_unlock_irqrestore(&target_list_lock, flags);
+ }
+@@ -918,17 +1184,25 @@ static struct console netconsole = {
+ static int __init init_netconsole(void)
+ {
+ 	int err;
+ 	struct netconsole_target *nt, *tmp;
+ 	unsigned long flags;
+ 	char *target_config;
+ 	char *input = config;
++#ifdef UI_ENCRYPT_DEBUG
++	const char testbuf[] = "This is a test!";
++	u8   *cipher = NULL;
++	int  cipherdata_len = 0;
++	ui_aad_t * cipher_aad;
++	int  ret;
++#endif
+ 
+ 	if (strnlen(input, MAX_PARAM_LENGTH)) {
+ 		while ((target_config = strsep(&input, ";"))) {
++			UI_ENCRYPT_DEBUG_PRINT("target_config:%s\n", target_config);
+ 			nt = alloc_param_target(target_config);
+ 			if (IS_ERR(nt)) {
+ 				err = PTR_ERR(nt);
+ 				goto fail;
+ 			}
+ 			/* Dump existing printks when we register */
+ 			if (nt->extended)
+@@ -939,14 +1213,38 @@ static int __init init_netconsole(void)
+ 
+ 			spin_lock_irqsave(&target_list_lock, flags);
+ 			list_add(&nt->list, &target_list);
+ 			spin_unlock_irqrestore(&target_list_lock, flags);
+ 		}
+ 	}
+ 
++	if (nt->np.encrypt) {
++		ui_init_crypt(nt->np.gcm_keyval, nt->np.hashid);
++#ifdef UI_ENCRYPT_DEBUG
++
++		UI_ENCRYPT_DEBUG_PRINT("perform test encryption and decryption\n");
++		ret = ui_encrypt(testbuf, sizeof(testbuf), &cipher, &cipherdata_len);
++		UI_ENCRYPT_DEBUG_PRINT("ret:%d plainlen:%d cipher:%p ciph_len:%d\n",
++				ret, sizeof(testbuf), cipher, cipherdata_len);
++		UI_ENCRYPT_DEBUG_DUMP("cipher: ", DUMP_PREFIX_NONE, cipher, cipherdata_len);
++
++		cipher_aad = (ui_aad_t *)cipher;
++		ret = ui_decrypt(cipher, cipherdata_len);
++		UI_ENCRYPT_DEBUG_PRINT("ui_decrypt ret:%d\n", ret);
++		cipher_aad->iv[UI_ENCRYPT_IV_LENGTH-1] += 55;
++		ret = ui_decrypt(cipher, cipherdata_len);
++		UI_ENCRYPT_DEBUG_PRINT("ui_decrypt modified gcm_iv LSB ret:%d\n", ret);
++		cipher_aad->iv[UI_ENCRYPT_IV_LENGTH-1] -= 55;
++		cipher_aad->iv[7] += 55;
++		ret = ui_decrypt(cipher, cipherdata_len);
++		UI_ENCRYPT_DEBUG_PRINT("ui_decrypt modified gcm_iv [7] ret:%d\n", ret);
++		kfree(cipher);
++#endif
++	}
++
+ 	err = register_netdevice_notifier(&netconsole_netdev_notifier);
+ 	if (err)
+ 		goto fail;
+ 
+ 	err = dynamic_netconsole_init();
+ 	if (err)
+ 		goto undonotifier;
+@@ -960,14 +1258,25 @@ static int __init init_netconsole(void)
+ 
+ undonotifier:
+ 	unregister_netdevice_notifier(&netconsole_netdev_notifier);
+ 
+ fail:
+ 	pr_err("cleaning up\n");
+ 
++	g_ui_encrypt_inited = 0;
++	if (g_gcm_aad) {
++		kfree(g_gcm_aad);
++	}
++	if (g_ptr_req) {
++		aead_request_free(g_ptr_req);
++	}
++	if (g_ptr_tfm) {
++		crypto_free_aead(g_ptr_tfm);
++	}
++
+ 	/*
+ 	 * Remove all targets and destroy them (only targets created
+ 	 * from the boot/module option exist here). Skipping the list
+ 	 * lock is safe here, and netpoll_cleanup() will sleep.
+ 	 */
+ 	list_for_each_entry_safe(nt, tmp, &target_list, list) {
+ 		list_del(&nt->list);
+@@ -977,19 +1286,30 @@ fail:
+ 	return err;
+ }
+ 
+ static void __exit cleanup_netconsole(void)
+ {
+ 	struct netconsole_target *nt, *tmp;
+ 
++	g_ui_encrypt_inited = 0;
+ 	unregister_console(&netconsole_ext);
+ 	unregister_console(&netconsole);
+ 	dynamic_netconsole_exit();
+ 	unregister_netdevice_notifier(&netconsole_netdev_notifier);
+ 
++	if (g_gcm_aad) {
++		kfree(g_gcm_aad);
++	}
++	if (g_ptr_req) {
++		aead_request_free(g_ptr_req);
++	}
++	if (g_ptr_tfm) {
++		crypto_free_aead(g_ptr_tfm);
++	}
++
+ 	/*
+ 	 * Targets created via configfs pin references on our module
+ 	 * and would first be rmdir(2)'ed from userspace. We reach
+ 	 * here only when they are already destroyed, and only those
+ 	 * created from the boot/module option are left, so remove and
+ 	 * destroy them. Skipping the list lock is safe here, and
+ 	 * netpoll_cleanup() will sleep.
+--- a/include/linux/netpoll.h
++++ b/include/linux/netpoll.h
+@@ -8,14 +8,41 @@
+ #define _LINUX_NETPOLL_H
+ 
+ #include <linux/netdevice.h>
+ #include <linux/interrupt.h>
+ #include <linux/rcupdate.h>
+ #include <linux/list.h>
+ 
++/* #define UI_ENCRYPT_DEBUG */
++#ifdef UI_ENCRYPT_DEBUG
++#define UI_ENCRYPT_DEBUG_PRINT(_fmt, ...) pr_info("UI ENCRYPT %s:%d:" _fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
++#define UI_ENCRYPT_DEBUG_DUMP(_prefix, _prefix_type, _buf, _len) \
++	print_hex_dump(KERN_INFO, "UI ENCRYPT: " _prefix, _prefix_type, 16, 1, _buf, _len, 0)
++#else
++#define UI_ENCRYPT_DEBUG_PRINT(...)
++#define UI_ENCRYPT_DEBUG_DUMP(...)
++#endif /* UI_ENCRYPT_DEBUG */
++
++#define UI_ENCRYPT_KEY_LENGTH 32
++#define UI_ENCRYPT_ID_LENGTH 8
++#define UI_ENCRYPT_IV_LENGTH 12
++#define UI_ENCRYPT_AUTH_TAG_LENGTH  16
++
++#define UI_ENCRYPT_MAGIC 0xABCDDCBA
++#define UI_ENCRYPT_VERSION 0x01
++#define UI_ENCRYPT_ENABLE_FLAG 0x00000001
++
++typedef struct {
++	u8 magic[4];
++	u8 version;
++	u8 flags[4];
++	u8 hashid[UI_ENCRYPT_ID_LENGTH];
++	u8 iv[UI_ENCRYPT_IV_LENGTH];
++} ui_aad_t;
++
+ union inet_addr {
+ 	__u32		all[4];
+ 	__be32		ip;
+ 	__be32		ip6[4];
+ 	struct in_addr	in;
+ 	struct in6_addr	in6;
+ };
+@@ -25,14 +52,17 @@ struct netpoll {
+ 	char dev_name[IFNAMSIZ];
+ 	const char *name;
+ 
+ 	union inet_addr local_ip, remote_ip;
+ 	bool ipv6;
+ 	u16 local_port, remote_port;
+ 	u8 remote_mac[ETH_ALEN];
++	bool encrypt;
++	u8 gcm_keyval[UI_ENCRYPT_KEY_LENGTH];
++	u8 hashid[UI_ENCRYPT_ID_LENGTH];
+ 
+ 	struct work_struct cleanup_work;
+ };
+ 
+ struct netpoll_info {
+ 	atomic_t refcnt;
+ 
+--- a/net/core/netpoll.c
++++ b/net/core/netpoll.c
+@@ -494,14 +494,19 @@ void netpoll_print_options(struct netpol
+ 	np_info(np, "interface '%s'\n", np->dev_name);
+ 	np_info(np, "remote port %d\n", np->remote_port);
+ 	if (np->ipv6)
+ 		np_info(np, "remote IPv6 address %pI6c\n", &np->remote_ip.in6);
+ 	else
+ 		np_info(np, "remote IPv4 address %pI4\n", &np->remote_ip.ip);
+ 	np_info(np, "remote ethernet address %pM\n", np->remote_mac);
++	np_info(np, "encrypted: %d\n", np->encrypt);
++	if (np->encrypt) {
++		UI_ENCRYPT_DEBUG_DUMP("gcm key value: ", DUMP_PREFIX_NONE, np->gcm_keyval, sizeof(np->gcm_keyval));
++		UI_ENCRYPT_DEBUG_DUMP("hashid: ", DUMP_PREFIX_NONE, np->hashid, sizeof(np->hashid));
++	}
+ }
+ EXPORT_SYMBOL(netpoll_print_options);
+ 
+ static int netpoll_parse_ip_addr(const char *str, union inet_addr *addr)
+ {
+ 	const char *end;
+ 
+@@ -583,20 +588,47 @@ int netpoll_parse_options(struct netpoll
+ 		goto parse_failed;
+ 	else if (ipversion_set && np->ipv6 != (bool)ipv6)
+ 		goto parse_failed;
+ 	else
+ 		np->ipv6 = (bool)ipv6;
+ 	cur = delim + 1;
+ 
++	/* UI optional params [,GCM_KEY,HASHID] */
++	if ((delim = strchr(cur, ',')) != NULL) {
++		*delim = 0;
++	}
++
+ 	if (*cur != 0) {
+ 		/* MAC address */
+ 		if (!mac_pton(cur, np->remote_mac))
+ 			goto parse_failed;
+ 	}
+ 
++	if (delim) {
++		cur = delim + 1;
++		if ((delim = strchr(cur, ',')) == NULL)
++			goto parse_failed; /* hashid required */
++		*delim = 0;
++
++		/* AES GCM encryption with 256-bit key */
++		if (strlen(cur) != sizeof(np->gcm_keyval) * 2)
++			goto parse_failed; /* key not right size */
++		if (hex2bin(np->gcm_keyval, cur, sizeof(np->gcm_keyval)) != 0)
++			goto parse_failed; /* valid key required */
++
++		cur = delim + 1;
++		/* 8-byte hashid */
++		if (strlen(cur) != sizeof(np->hashid) * 2)
++			goto parse_failed; /* hashid not right size */
++		if (hex2bin(np->hashid, cur, sizeof(np->hashid)) != 0)
++			goto parse_failed; /* valid hashid required */
++
++		np->encrypt = 1;
++	}
++
+ 	netpoll_print_options(np);
+ 
+ 	return 0;
+ 
+  parse_failed:
+ 	np_info(np, "couldn't parse config at '%s'!\n", cur);
+ 	return -1;

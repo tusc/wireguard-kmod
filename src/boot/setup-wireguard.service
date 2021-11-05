@@ -1,0 +1,12 @@
+[Unit]
+Description=Run wireguard setup script
+Wants=network.target
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStartPre=sh -c 'DIR="$(find /mnt/data/wireguard /data/wireguard -maxdepth 1 -type d -name "wireguard" 2>/dev/null | head -n1)"; ln -sf "$DIR/setup_wireguard.sh" /etc'
+ExecStart=/etc/setup_wireguard.sh
+
+[Install]
+WantedBy=multi-user.target

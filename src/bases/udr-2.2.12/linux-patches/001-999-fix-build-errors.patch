@@ -1,0 +1,33 @@
+--- a/drivers/cpufreq/cpufreq_interactive.c
++++ b/drivers/cpufreq/cpufreq_interactive.c
+@@ -1017,28 +1017,28 @@ static ssize_t store_io_is_busy(struct c
+ /*
+  * Create show/store routines
+  * - sys: One governor instance for complete SYSTEM
+  * - pol: One governor instance per struct cpufreq_policy
+  */
+ #define show_gov_pol_sys(file_name)					\
+ static ssize_t show_##file_name##_gov_sys				\
+-(struct kobject *kobj, struct attribute *attr, char *buf)		\
++(struct kobject *kobj, struct kobj_attribute *attr, char *buf)		\
+ {									\
+ 	return show_##file_name(common_tunables, buf);			\
+ }									\
+ 									\
+ static ssize_t show_##file_name##_gov_pol				\
+ (struct cpufreq_policy *policy, char *buf)				\
+ {									\
+ 	return show_##file_name(policy->governor_data, buf);		\
+ }
+ 
+ #define store_gov_pol_sys(file_name)					\
+ static ssize_t store_##file_name##_gov_sys				\
+-(struct kobject *kobj, struct attribute *attr, const char *buf,		\
++(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,	\
+ 	size_t count)							\
+ {									\
+ 	return store_##file_name(common_tunables, buf, count);		\
+ }									\
+ 									\
+ static ssize_t store_##file_name##_gov_pol				\
+ (struct cpufreq_policy *policy, const char *buf, size_t count)		\

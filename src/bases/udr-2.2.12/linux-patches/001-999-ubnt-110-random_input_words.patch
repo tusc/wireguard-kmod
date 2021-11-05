@@ -1,0 +1,62 @@
+--- a/drivers/char/random.c
++++ b/drivers/char/random.c
+@@ -962,14 +962,40 @@ void add_disk_randomness(struct gendisk
+ 	/* first major is 1, so we get >= 0x200 here */
+ 	add_timer_randomness(disk->random, 0x100 + disk_devt(disk));
+ 	trace_add_disk_randomness(disk_devt(disk), ENTROPY_BITS(&input_pool));
+ }
+ EXPORT_SYMBOL_GPL(add_disk_randomness);
+ #endif
+ 
++/*
++ * random_input_words - add bulk entropy to pool
++ *
++ * @buf: buffer to add
++ * @wordcount: number of __u32 words to add
++ * @ent_count: total amount of entropy (in bits) to credit
++ *
++ * this provides bulk input of entropy to the input pool
++ *
++ */
++void random_input_words(__u32 *buf, size_t wordcount, int ent_count)
++{
++	mix_pool_bytes(&input_pool, buf, wordcount * 4);
++
++	credit_entropy_bits(&input_pool, ent_count);
++
++	/*
++	 * Wake up waiting processes if we have enough
++	 * entropy.
++	 */
++        if (ENTROPY_BITS(&input_pool) >= random_read_wakeup_bits)
++		wake_up_interruptible(&random_read_wait);
++
++}
++EXPORT_SYMBOL(random_input_words);
++
+ /*********************************************************************
+  *
+  * Entropy extraction routines
+  *
+  *********************************************************************/
+ 
+ static ssize_t extract_entropy(struct entropy_store *r, void *buf,
+--- a/include/linux/random.h
++++ b/include/linux/random.h
+@@ -18,14 +18,16 @@ struct random_ready_callback {
+ };
+ 
+ extern void add_device_randomness(const void *, unsigned int);
+ extern void add_input_randomness(unsigned int type, unsigned int code,
+ 				 unsigned int value);
+ extern void add_interrupt_randomness(int irq, int irq_flags);
+ 
++extern void random_input_words(__u32 *buf, size_t wordcount, int ent_count);
++
+ extern void get_random_bytes(void *buf, int nbytes);
+ extern int add_random_ready_callback(struct random_ready_callback *rdy);
+ extern void del_random_ready_callback(struct random_ready_callback *rdy);
+ extern void get_random_bytes_arch(void *buf, int nbytes);
+ void generate_random_uuid(unsigned char uuid_out[16]);
+ extern int random_int_secret_init(void);
+ 

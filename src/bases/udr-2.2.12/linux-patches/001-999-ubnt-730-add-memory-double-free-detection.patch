@@ -1,0 +1,18 @@
+--- a/mm/slub.c
++++ b/mm/slub.c
+@@ -252,14 +252,15 @@ static inline void *get_freepointer_safe
+ 	p = get_freepointer(s, object);
+ #endif
+ 	return p;
+ }
+ 
+ static inline void set_freepointer(struct kmem_cache *s, void *object, void *fp)
+ {
++	BUG_ON(object == fp);
+ 	*(void **)(object + s->offset) = fp;
+ }
+ 
+ /* Loop over all objects in a slab */
+ #define for_each_object(__p, __s, __addr, __objects) \
+ 	for (__p = fixup_red_left(__s, __addr); \
+ 		__p < (__addr) + (__objects) * (__s)->size; \

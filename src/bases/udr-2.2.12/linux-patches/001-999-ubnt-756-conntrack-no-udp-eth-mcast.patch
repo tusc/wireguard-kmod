@@ -1,0 +1,75 @@
+Do not track Ethernet multicasts to avoid conntrack table exhaustion
+by UDP traffic such as the discovery protocol.
+
+--- a/net/netfilter/nf_conntrack_proto_udp.c
++++ b/net/netfilter/nf_conntrack_proto_udp.c
+@@ -22,14 +22,16 @@
+ #include <linux/netfilter_ipv6.h>
+ #include <net/netfilter/nf_conntrack_l4proto.h>
+ #include <net/netfilter/nf_conntrack_ecache.h>
+ #include <net/netfilter/nf_log.h>
+ #include <net/netfilter/ipv4/nf_conntrack_ipv4.h>
+ #include <net/netfilter/ipv6/nf_conntrack_ipv6.h>
+ 
++#include <linux/etherdevice.h>
++
+ static unsigned int udp_timeouts[UDP_CT_MAX] = {
+ 	[UDP_CT_UNREPLIED]	= 30*HZ,
+ 	[UDP_CT_REPLIED]	= 180*HZ,
+ };
+ 
+ static inline struct nf_udp_net *udp_pernet(struct net *net)
+ {
+@@ -73,23 +75,34 @@ static void udp_print_tuple(struct seq_f
+ }
+ 
+ static unsigned int *udp_get_timeouts(struct net *net)
+ {
+ 	return udp_pernet(net)->timeouts;
+ }
+ 
++static inline bool skb_is_eth_mcast(const struct sk_buff *skb)
++{
++	if (skb->dev == NULL || skb->dev->type != ARPHRD_ETHER)
++		return false;
++
++	return is_multicast_ether_addr(eth_hdr(skb)->h_dest);
++}
++
+ /* Returns verdict for packet, and may modify conntracktype */
+ static int udp_packet(struct nf_conn *ct,
+ 		      const struct sk_buff *skb,
+ 		      unsigned int dataoff,
+ 		      enum ip_conntrack_info ctinfo,
+ 		      u_int8_t pf,
+ 		      unsigned int hooknum,
+ 		      unsigned int *timeouts)
+ {
++	if (skb_is_eth_mcast(skb))
++		return NF_ACCEPT;
++
+ 	/* If we've seen traffic both ways, this is some kind of UDP
+ 	   stream.  Extend timeout. */
+ 	if (test_bit(IPS_SEEN_REPLY_BIT, &ct->status)) {
+ 		nf_ct_refresh_acct(ct, ctinfo, skb,
+ 				   timeouts[UDP_CT_REPLIED]);
+ 		/* Also, more likely to be important, and not a probe */
+ 		if (!test_and_set_bit(IPS_ASSURED_BIT, &ct->status))
+@@ -101,14 +114,17 @@ static int udp_packet(struct nf_conn *ct
+ 	return NF_ACCEPT;
+ }
+ 
+ /* Called when a new connection for this protocol found. */
+ static bool udp_new(struct nf_conn *ct, const struct sk_buff *skb,
+ 		    unsigned int dataoff, unsigned int *timeouts)
+ {
++	if (skb_is_eth_mcast(skb))
++		return false;
++
+ 	return true;
+ }
+ 
+ static int udp_error(struct net *net, struct nf_conn *tmpl, struct sk_buff *skb,
+ 		     unsigned int dataoff, enum ip_conntrack_info *ctinfo,
+ 		     u_int8_t pf,
+ 		     unsigned int hooknum)

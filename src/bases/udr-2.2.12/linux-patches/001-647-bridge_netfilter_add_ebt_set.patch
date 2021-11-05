@@ -1,0 +1,46 @@
+--- a/net/bridge/netfilter/Kconfig
++++ b/net/bridge/netfilter/Kconfig
+@@ -150,14 +150,25 @@ config BRIDGE_EBT_STP
+ config BRIDGE_EBT_VLAN
+ 	tristate "ebt: 802.1Q VLAN filter support"
+ 	help
+ 	  This option adds the 802.1Q vlan match, which allows the filtering of
+ 	  802.1Q vlan fields.
+ 
+ 	  To compile it as a module, choose M here.  If unsure, say N.
++
++config BRIDGE_EBT_SET
++	tristate "ebt: set support"
++	depends on IP_SET
++	help
++	  This option adds set match.
++
++	  Using this match, you can match
++	  elements in the sets created by ipset(8).
++
++	  To compile it as a module, choose M here.  If unsure, say N.
+ #
+ # targets
+ #
+ config BRIDGE_EBT_ARPREPLY
+ 	tristate "ebt: arp reply target support"
+ 	depends on BRIDGE_NF_EBTABLES && INET
+ 	help
+--- a/net/bridge/netfilter/Makefile
++++ b/net/bridge/netfilter/Makefile
+@@ -23,14 +23,15 @@ obj-$(CONFIG_BRIDGE_EBT_ARP) += ebt_arp.
+ obj-$(CONFIG_BRIDGE_EBT_IP) += ebt_ip.o
+ obj-$(CONFIG_BRIDGE_EBT_IP6) += ebt_ip6.o
+ obj-$(CONFIG_BRIDGE_EBT_LIMIT) += ebt_limit.o
+ obj-$(CONFIG_BRIDGE_EBT_MARK) += ebt_mark_m.o
+ obj-$(CONFIG_BRIDGE_EBT_PKTTYPE) += ebt_pkttype.o
+ obj-$(CONFIG_BRIDGE_EBT_STP) += ebt_stp.o
+ obj-$(CONFIG_BRIDGE_EBT_VLAN) += ebt_vlan.o
++obj-$(CONFIG_BRIDGE_EBT_SET) += ebt_set.o
+ 
+ # targets
+ obj-$(CONFIG_BRIDGE_EBT_ARPREPLY) += ebt_arpreply.o
+ obj-$(CONFIG_BRIDGE_EBT_MARK_T) += ebt_mark.o
+ obj-$(CONFIG_BRIDGE_EBT_DNAT) += ebt_dnat.o
+ obj-$(CONFIG_BRIDGE_EBT_REDIRECT) += ebt_redirect.o
+ obj-$(CONFIG_BRIDGE_EBT_SNAT) += ebt_snat.o

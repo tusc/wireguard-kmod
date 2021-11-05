@@ -1,0 +1,18 @@
+--- a/drivers/pinctrl/mediatek/pinctrl-mtk-common.c
++++ b/drivers/pinctrl/mediatek/pinctrl-mtk-common.c
+@@ -745,14 +745,15 @@ static int mtk_pctrl_dt_node_to_map(stru
+ 	reserved_maps = 0;
+ 
+ 	for_each_child_of_node(np_config, np) {
+ 		ret = mtk_pctrl_dt_subnode_to_map(pctldev, np, map,
+ 				&reserved_maps, num_maps);
+ 		if (ret < 0) {
+ 			pinctrl_utils_dt_free_map(pctldev, *map, *num_maps);
++			of_node_put(np);
+ 			return ret;
+ 		}
+ 	}
+ 
+ 	return 0;
+ }
+ 

@@ -1,0 +1,19 @@
+--- a/net/core/dev.c
++++ b/net/core/dev.c
+@@ -3237,16 +3237,14 @@ static int __dev_queue_xmit(struct sk_bu
+ 				__this_cpu_dec(xmit_recursion);
+ 				if (dev_xmit_complete(rc)) {
+ 					HARD_TX_UNLOCK(dev, txq);
+ 					goto out;
+ 				}
+ 			}
+ 			HARD_TX_UNLOCK(dev, txq);
+-			net_crit_ratelimited("Virtual device %s asks to queue packet!\n",
+-					     dev->name);
+ 		} else {
+ 			/* Recursion is detected! It is possible,
+ 			 * unfortunately
+ 			 */
+ recursion_alert:
+ 			net_crit_ratelimited("Dead loop on virtual device %s, fix it urgently!\n",
+ 					     dev->name);
