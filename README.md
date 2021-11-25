@@ -1,9 +1,9 @@
-# WireGuard kernel module for UDM/UDM pro
+# WireGuard kernel module for UnifiOS (UDM, UDR, UXG)
 ## Project Notes
 
 **Author:** Carlos Talbot (Tusc00 on reddit, @tusc69 on ubnt forums)
 
-The tar file in this repository is a collection of binaries that can be loaded onto a UDM/UDM Pro to run WireGuard in kernel mode. WireGuard is a high performance vpn solution developed by Jason Donenfeld ( https://www.wireguard.com/ ). "WireGuard" and the "WireGuard" logo are registered trademarks of Jason A. Donenfeld.<br/><br/>
+The tar file in this repository is a collection of binaries that can be loaded onto a UDM/UDM Pro to run WireGuard in kernel mode. WireGuard is a high performance vpn solution developed by Jason Donenfeld ( https://www.wireguard.com/ ). "WireGuard" and the "WireGuard" logo are registered trademarks of Jason A. Donenfeld.
 
 Please see below for instructions on how to install the prebuilt kernel module and associated utils.
 ## Table of Contents
@@ -16,10 +16,7 @@ Please see below for instructions on how to install the prebuilt kernel module a
   * [Configuration](#configuration)
   * [Start tunnel](#start-tunnel)
   * [Stop tunnel](#stop-tunnel)
-  * [Multi WAN failover](#multi-wan-failover)
-  * [Split VPN](#split-vpn)
-  * [QR Code for clients](#qr-code-for-clients)
-
+  * [FAQ](#faq)
 
 The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 800Mb/sec throughput through an IPSec tunnel. There has been a large interest in a kernel port of WireGuard since performance is expected to be similar if not more. This kernel module was built using the WireGuard backport as the UDM runs an older kernel(4.1.37). If you want to compile your own version, there will be a seperate build page posted soon. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the Ubiquiti UDM GPL source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
 
@@ -33,11 +30,13 @@ The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 
 
 2. From this directory type the following to extract the files:
 
-	* For the UDM/P or UDM-SE, extract the files into `/mnt/data/wireguard`
+	* For the UDM, UDM-Pro, UDM-SE, or UXG-Pro, extract the files into `/mnt/data/wireguard`
+	
 		```sh
 		tar -C /mnt/data -xvzf wireguard-kmod.tar.Z
 		```
 	* For the UDR, extract the files into `/data/wireguard`
+	
 		```sh
 		tar -C /data -xvzf wireguard-kmod.tar.Z
 		```
@@ -55,7 +54,7 @@ The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 
     [13540.520126] wireguard: Copyright (C) 2015-2019 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
     ```
 
-    The tar file includes other useful utils such as htop, iftop and [qrencode.](#qr-code-for-clients)
+    The tar file includes other useful utils such as htop, iftop and [qrencode.](#faq)
 
 ## Build from source
 To build this package please follow this [README](https://github.com/tusc/wireguard-kmod/blob/main/README.building.md)
@@ -168,18 +167,61 @@ I'm currently testing throughput using iperf3 between a UDM Pro and an Ubuntu cl
 # wg-quick down wg0
 ```
 
-## Multi WAN failover
-If you have mutliple WANs or are using the UniFi Redundant WAN over LTE, you'll notice the WireGuard connection stays active with the failover link when the primary WAN comes back. A user has written a script to reset the WireGuard tunnel during a fail backup. You can find it at the link below. Just drop it in the startup directory /mnt/data/on_boot.d just like the setup script [above](#surviving-reboots).
-https://github.com/k-a-s-c-h/unifi/blob/main/on_boot.d/10-wireguard_failover.sh
+## FAQ
 
-## Split VPN
+<details>
+  <summary>Setup script returns error "Unsupported Kernel version XXX"</summary>   
+    
+  * The wireguard package does not contain a wireguard module built for your firmware or kernel version, nor is there a built-in module in your kernel. Please open an issue and report your version so we can try to update the module.
 
-For s split tunnel VPN script for the UDM with policy based routing, have a look at peacey's [tool](https://github.com/peacey/split-vpn)
+</details>
+<details>
+	<summary>wg-quick up returns error "unable to initialize table 'raw'"</summary>
+    
+  * Your kernel does not have the iptables raw module. The raw module is only required if you use `0.0.0.0/0` or `::/0` in your wireguard config's AllowedIPs. A workaround is to instead set AllowedIPs to `0.0.0.0/1,128.0.0.0/1` for IPv4 or `::/1,8000::/1` for IPv6. These subnets cover the same range but do not invoke wg-quick's use of the iptables raw module.
 
-## QR Code for clients
-If you gererate the client keys on the UDM you can use qrencode which has been provided for easy configuration on your IOS or Android phone. Just pass the client configuration file to qrencode as shown below and import with your mobile WireGuard client:
-```
-qrencode -t ansiutf8 </etc/wireguard/wg0.conf.sample
-```
+</details>
+<details>
+  <summary>The built-in gateway DNS does not reply to requests from the WireGuard tunnel</summary>   
+    
+  * The built-in dnsmasq on UnifiOS is configured to only listen for requests from specific interfaces. The wireguard interface name (e.g.: wg0) needs to be added to the dnsmasq config so it can respond to requests from the tunnel. You can run the following to add wg0 to the dnsmasq interface list:
 
-![qrencode](/images/qrencode.png)
+	```sh
+	echo "interface=wg0" > /run/dnsmasq.conf.d/custom_listen.conf
+	killall -9 dnsmasq
+	```
+
+* You can also those commands to PostUp in your wireguard config's Interface section to automatically run them when the tunnel comes up, e.g.:
+
+	```sh
+	PostUp = echo "interface=%i" > /run/dnsmasq.conf.d/custom_listen.conf; killall -9 dnsmasq
+	PreDown = rm -f /run/dnsmasq.conf.d/custom_listen.conf; killall -9 dnsmasq
+	```
+	
+</details>
+<details>
+  <summary>Policy-based routing</summary>   
+	
+  * If you want to route router-connected clients through the wireguard tunnel based on source subnet or source VLAN, you need to set up policy-based routing. This is not currently supported with the UI, but can be done in SSH. For a script that makes it easy to set-up policy-based routing rules on UnifiOS, see the [split-vpn](https://github.com/peacey/split-vpn) project.
+	
+</details>
+<details>
+  <summary>Multi WAN failover</summary>   
+	
+  * If you have mutliple WANs or are using the UniFi Redundant WAN over LTE, you'll notice the WireGuard connection stays active with the failover link when the primary WAN comes back. A user has written a script to reset the WireGuard tunnel during a fail backup. You can find it at the link below. Just drop it in the startup directory /mnt/data/on_boot.d just like the setup script [above](#surviving-reboots).
+	
+	https://github.com/k-a-s-c-h/unifi/blob/main/on_boot.d/10-wireguard_failover.sh
+	
+</details>
+<details>
+  <summary>QR Code for clients</summary>   
+
+  * If you gererate the client keys on the UDM you can use qrencode which has been provided for easy configuration on your IOS or Android phone. Just pass the client configuration file to qrencode as shown below and import with your mobile WireGuard client:
+	
+	```
+	qrencode -t ansiutf8 </etc/wireguard/wg0.conf.sample
+	```
+
+	![qrencode](/images/qrencode.png)
+	
+</details>
