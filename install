@@ -51,9 +51,9 @@ WG_INTERFACE="wg0"
 
 
 if [ -d "/data/wireguard" ]; then
-  [[ -x "/data/wireguard/setup_wireguard.sh" ]] && "\${WIREGUARD_PATH}/setup_wireguard.sh" >&2
+  [[ -x "/data/wireguard/setup_wireguard.sh" ]] && "/data/wireguard/setup_wireguard.sh" >&2
 elif [ -d "/mnt/data/wireguard" ]; then
-  [[ -x "/mnt/data/wireguard/setup_wireguard.sh" ]] && "\${WIREGUARD_PATH}/setup_wireguard.sh" >&2
+  [[ -x "/mnt/data/wireguard/setup_wireguard.sh" ]] && "/mnt/data/wireguard/setup_wireguard.sh" >&2
 else
   exit 1
 fi
@@ -100,6 +100,8 @@ case "$(ubnt-device-info summary | awk '$1 ~ /^Model:$/ {gsub(/[\(\)*]/, "", $NF
     ln -s "${ON_BOOT_D_WG_PATH}/${ON_BOOT_D_WG_FILENAME}" "$ON_BOOT_PATH"
     ;;
   *)
+    check_dependency systemctl
+    
     echo "Creating system startup script for wireguard"
     curl -sLo "$WG_SERVICE_PATH" "$WG_SERVICE_URL"
     systemctl daemon-reload
