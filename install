@@ -15,9 +15,9 @@ WG_SERVICE_PATH="/etc/systemd/system/setup-wireguard.service"
 
 check_dependency() {
   for dep in "$@"; do
-    [ -n "$(command -v "$dep")" ] || 
-      echo "\`${dep}\` is not installed" &&
-      exit 4
+    [ -n "$(command -v "$dep")" ] ||
+      echo "\`${dep}\` is not installed"
+
   done
 
   unset dep
@@ -68,27 +68,42 @@ else
 EOF
 }
 
+echo "Downloading wireguard-kmod"
 curl -LJo "$TMP_WIREGUARD_FILE" "$(get_latest_download_url)"
 sleep 1
-tar -C "$(get_persistent_path "wireguard")" -xvzf "$TMP_WIREGUARD_FILE"
-sleep 1
-cd "$(get_persistent_path "wireguard")" || exit 4
 
+if [ ! -f "$TMP_WIREGUARD_FILE" ]; then
+  echo "Wireguard downloaded file could not be found."
+  exit 4
+fi
+
+echo "Unzipping"
+tar -C "$(get_persistent_path)" -xvzf "$TMP_WIREGUARD_FILE"
+sleep 1
+
+if [ ! -d "$(get_persistent_path "wireguard")" ]; then
+  echo "Wireguard-kmod was not downloaded"
+  exit 4
+fi
+
+echo "Moving to $(get_persistent_path "wireguard")"
+cd "$(get_persistent_path "wireguard")" || exit 4
+echo "Execution permissions"
 chmod +x "$(get_persistent_path "wireguard")/setup_wireguard.sh"
 "$(get_persistent_path "wireguard")/setup_wireguard.sh"
 
-
 case "$(ubnt-device-info summary | awk '$1 ~ /^Model:$/ {gsub(/[\(\)*]/, "", $NF); print $NF}')" in
   UDM|UDM-Pro)
-    mkdir -p "/mnt/data/wireguard/on_boot.d"
-    on_boot_script | tee "${ON_BOOT_D_WG_PATH}/${ON_BOOT_D_WG_FILENAME}"
+    echo "Creating on boot script for wireguard setup"
+    mkdir -p "$ON_BOOT_D_WG_PATH"
+    rm -f "${ON_BOOT_D_WG_PATH}/${ON_BOOT_D_WG_FILENAME}"
+    [ ! -f "${ON_BOOT_D_WG_PATH}/${ON_BOOT_D_WG_FILENAME}" ] && on_boot_script > "${ON_BOOT_D_WG_PATH}/${ON_BOOT_D_WG_FILENAME}"
     chmod +x "${ON_BOOT_D_WG_PATH}/${ON_BOOT_D_WG_FILENAME}"
     ln -s "${ON_BOOT_D_WG_PATH}/${ON_BOOT_D_WG_FILENAME}" "$ON_BOOT_PATH"
     ;;
   *)
-    check_dependency systemctl
-
-    curl -Lo "$WG_SERVICE_PATH" "$WG_SERVICE_URL"
+    echo "Creating system startup script for wireguard"
+    curl -sLo "$WG_SERVICE_PATH" "$WG_SERVICE_URL"
     systemctl daemon-reload
     systemctl enable "$(basename "${WG_SERVICE_PATH%.*}")"
     ;;
