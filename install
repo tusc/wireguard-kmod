@@ -47,8 +47,16 @@ cat << EOF
 #!/usr/bin/env bash
 
 WG_INTERFACE="wg0"
+WIREGUARD_PATH=""
+if [ -d "/data/wireguard" ]; then
+  WIREGUARD_PATH="/data/wireguard"
+elif [ -d "/mnt/data/wireguard" ]; then
+  WIREGUARD_PATH="/mnt/data/wireguard"
+else
+  exit 1
+fi
 
-[[ -x "/mnt/data/wireguard/setup_wireguard.sh" ]] && /mnt/data/wireguard/setup_wireguard.sh &>/dev/null || true
+[[ -x "${WIREGUARD_PATH}/setup_wireguard.sh" ]] && "${WIREGUARD_PATH}/setup_wireguard.sh" >&2
 
 if [[ -n "$(command -v wg-quick)" ]]; then
   echo "wg-quick up ${WG_INTERFACE}"
@@ -78,7 +86,7 @@ case "$(ubnt-device-info summary | awk '$1 ~ /^Model:$/ {gsub(/[\(\)*]/, "", $NF
     ;;
   *)
     check_dependency systemctl
-    
+
     curl -Lo "$WG_SERVICE_PATH" "$WG_SERVICE_URL"
     systemctl daemon-reload
     systemctl enable "$(basename "${WG_SERVICE_PATH%.*}")"
