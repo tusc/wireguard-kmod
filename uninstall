@@ -1,0 +1,48 @@
+#!/usr/bin/env sh
+
+purge=false
+DATA_DIR=""
+WG_SERVICE_PATH="/etc/systemd/system/setup-wireguard.service"
+
+case " $* " in
+  *" --help "*)
+cat << EOF
+
+Remove wireguard-kmod installation files
+
+Usage:
+  ${BASH_SOURCE} [--purge]
+
+Options:
+  --purge  Delete {/mnt/data,/data}/wireguard path
+EOF
+  exit
+  ;;
+  *" --purge "*)
+    purge=true
+    ;;
+esac
+
+if [ -d "/mnt/data" ]; then
+	DATA_DIR="/mnt/data"
+elif [ -d "/data" ]; then
+	DATA_DIR="/data"
+fi
+
+if ${purge:-false}; then
+  echo "Removing wireguard files and configuration"
+  rm -rf "${DATA_DIR}/wireguard"
+fi
+
+echo "Removing files"
+rm -rf "/usr/bin/wg-quick" "/usr/bin/wg" "/usr/bin/bash" "/usr/bin/qrencode" "/usr/bin/htop" "/usr/sbin/iftop" "/sbin/resolvconf" "/etc/wireguard" "/etc/resolvconf.conf" "/mnt/data/on_boot.d/20-wireguard.sh"
+
+case "$(ubnt-device-info summary | awk '$1 ~ /^Model:$/ {gsub(/[\(\)*]/, "", $NF); print $NF}')" in
+  UDM|UDM-Pro)
+    ;;
+  *)
+    systemctl disable "$(basename "${WG_SERVICE_PATH%.*}")"
+    systemctl daemon-reload
+    rm -f "$WG_SERVICE_PATH"
+    ;;
+esac
