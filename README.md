@@ -22,37 +22,15 @@ The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 
 
 
 ## Install
-1. We first need to download the tar file onto the UDM. Connect to it via SSH and type the following command to download the tar file. You need to download the following tar file. NOTE: always [this link](https://github.com/tusc/wireguard-kmod/releases) check for the latest release.
+
+  1. 
 
     ```sh
-    curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/releases/download/v11-05-21/wireguard-kmod-11-05-21.tar.Z
+    /bin/sh < <(curl -sfL "https://github.com/tusc/wireguard-kmod/HEAD/install")
     ```
 
-2. From this directory type the following to extract the files:
+  2. Place your wg0.conf file in the given path when the script has finished.
 
-	* For the UDM, UDM-Pro, UDM-SE, or UXG-Pro, extract the files into `/mnt/data/wireguard`
-	
-		```sh
-		tar -C /mnt/data -xvzf wireguard-kmod.tar.Z
-		```
-	* For the UDR, extract the files into `/data/wireguard`
-	
-		```sh
-		tar -C /data -xvzf wireguard-kmod.tar.Z
-		```
-
-2. Once the extraction is complete, cd into `/mnt/data/wireguard` (or `/data/wireguard` for UDR) and run the script **setup_wireguard.sh** as shown below
-    ```
-    cd /mnt/data/wireguard
-    chmod +x setup_wireguard.sh
-    ./setup_wireguard.sh
-    ```
-    This will setup the symbolic links for the various binaries to the /usr/bin path as well as create a symlink for the /etc/wireguard folder and finally load the kernel module. You'll want to run **dmesg** to verify the kernel module was loaded. You should see something like the following: 
-    
-    ```
-    [13540.520120] wireguard: WireGuard 1.0.20210219 loaded. See www.wireguard.com for information.
-    [13540.520126] wireguard: Copyright (C) 2015-2019 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
-    ```
 
     The tar file includes other useful utils such as htop, iftop and [qrencode.](#faq)
 
