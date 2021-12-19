@@ -1,0 +1,82 @@
+#!/usr/bin/env sh
+
+GITHUB_API_URL="https://api.github.com/repos"
+GITHUB_REPOSITORY="tusc/wireguard-kmod"
+
+TMP_WIREGUARD_FILE="/tmp/wireguard-kmod.tar.Z"
+
+ON_BOOT_PATH="/mnt/data/on_boot.d"
+ON_BOOT_D_WG_PATH="/mnt/data/wireguard/on_boot.d"
+ON_BOOT_D_WG_FILENAME="20-wireguard.sh"
+
+WG_SERVICE_URL="https://raw.githubusercontent.com/tusc/wireguard-kmod/main/src/boot/setup-wireguard.service"
+WG_SERVICE_PATH="/etc/systemd/system/setup-wireguard.service"
+
+check_dependency() {
+  for dep in "$@"; do
+    [ -n "$(command -v "$dep")" ] || 
+      echo "\`${dep}\` is not installed" &&
+      exit 4
+  done
+
+  unset dep
+}
+
+get_latest_download_url() {
+  check_dependency curl
+
+  curl -sLf "${GITHUB_API_URL}/${GITHUB_REPOSITORY}/releases/latest" |
+    awk '$0 ~ /"browser_download_url"/ {sub(/.*:\s*"/,"",$0); gsub("\"", "", $0); print $0}'
+}
+
+get_persistent_path() {
+  if [ -n "$(command -v ubnt-device-info)" ]; then
+    case "$(ubnt-device-info summary | awk '$1 ~ /^Model:$/ {gsub(/[\(\)*]/, "", $NF); print $NF}')" in
+      UDR)
+        echo -n "/data${1:+/$1}"
+        ;;
+      *)
+        echo -n "/mnt/data${1:+/$1}"
+        ;;
+    esac
+  fi
+}
+
+on_boot_script() {
+cat << EOF
+#!/usr/bin/env bash
+
+[[ -x "/mnt/data/wireguard/setup_wireguard.sh" ]] && /mnt/data/wireguard/setup_wireguard.sh &>/dev/null || true
+
+if [[ -n "$(command -v wg-quick)" ]]; then
+  echo "wg-quick up wg0"
+  wg-quick up wg0
+else
+  # You can add whatever here like a telegram script to notify that wg could not start
+  echo "Wireguard could not be started $(date +%s)" >> /var/log/wg-startup.log
+EOF
+}
+
+curl -LJo "$TMP_WIREGUARD_FILE" "$(get_latest_download_url)"
+sleep 1
+tar -C "$(get_persistent_path "wireguard")" -xvzf "$TMP_WIREGUARD_FILE"
+sleep 1
+cd "$(get_persistent_path "wireguard")" || exit 4
+
+chmod +x "$(get_persistent_path "wireguard")/setup_wireguard.sh"
+"$(get_persistent_path "wireguard")/setup_wireguard.sh"
+
+
+case "$(ubnt-device-info summary | awk '$1 ~ /^Model:$/ {gsub(/[\(\)*]/, "", $NF); print $NF}')" in
+  UDM|UDM-Pro)
+    mkdir -p "/mnt/data/wireguard/on_boot.d"
+    on_boot_script | tee "${ON_BOOT_D_WG_PATH}/${ON_BOOT_D_WG_FILENAME}"
+    chmod +x "${ON_BOOT_D_WG_PATH}/${ON_BOOT_D_WG_FILENAME}"
+    ln -s "${ON_BOOT_D_WG_PATH}/${ON_BOOT_D_WG_FILENAME}" "$ON_BOOT_PATH"
+    ;;
+  *)
+    curl -Lo "$WG_SERVICE_PATH" "$WG_SERVICE_URL"
+    systemctl daemon-reload
+    systemctl enable "$(basename "${WG_SERVICE_PATH%.*}")"
+    ;;
+esac
