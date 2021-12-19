@@ -63,6 +63,8 @@ if [[ -n "/usr/bin/wg-quick" ]]; then
 else
   # You can add whatever here like a telegram script to notify that wg could not start
   echo "Wireguard could not be started \$(date +%s)" >> /var/log/wg-startup.log
+fi
+
 EOF
 }
 
@@ -101,7 +103,7 @@ case "$(ubnt-device-info summary | awk '$1 ~ /^Model:$/ {gsub(/[\(\)*]/, "", $NF
     ;;
   *)
     check_dependency systemctl
-    
+
     echo "Creating system startup script for wireguard"
     curl -sLo "$WG_SERVICE_PATH" "$WG_SERVICE_URL"
     systemctl daemon-reload
