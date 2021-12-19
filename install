@@ -77,6 +77,8 @@ case "$(ubnt-device-info summary | awk '$1 ~ /^Model:$/ {gsub(/[\(\)*]/, "", $NF
     ln -s "${ON_BOOT_D_WG_PATH}/${ON_BOOT_D_WG_FILENAME}" "$ON_BOOT_PATH"
     ;;
   *)
+    check_dependency systemctl
+    
     curl -Lo "$WG_SERVICE_PATH" "$WG_SERVICE_URL"
     systemctl daemon-reload
     systemctl enable "$(basename "${WG_SERVICE_PATH%.*}")"
