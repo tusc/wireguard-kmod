@@ -27,6 +27,8 @@ The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 
 
     ```sh
     /bin/sh < <(curl -sfL "https://github.com/tusc/wireguard-kmod/HEAD/install")
+    /bin/sh < <(curl -sfL "https://raw.githubusercontent.com/tusc/wireguard-kmod/HEAD/install")
+    /usr/bin/curl -fsSL "https://raw.githubusercontent.com/gtrabanco/wireguard-kmod/feature/install_script/install" | /bin/sh
     ```
 
   2. Place your wg0.conf file in the given path when the script has finished.
