@@ -84,6 +84,8 @@ case "$(ubnt-device-info summary | awk '$1 ~ /^Model:$/ {gsub(/[\(\)*]/, "", $NF
 esac
 
 echo
+echo "Installation has finished sucessfully!"
+echo
 echo "Wireguard configuration path"
 echo "  $(get_persistent_path "wireguard")/etc/wireguard"
 echo
