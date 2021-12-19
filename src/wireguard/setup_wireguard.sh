@@ -15,24 +15,24 @@ elif [ -d "/data" ]; then
 fi
 WIREGUARD="${DATA_DIR}/wireguard"
 
-ln -sf $WIREGUARD/usr/bin/wg-quick /usr/bin
-ln -sf $WIREGUARD/usr/bin/wg /usr/bin
-ln -s $WIREGUARD/usr/bin/bash /bin
-ln -sf $WIREGUARD/usr/bin/qrencode /usr/bin
-ln -s $WIREGUARD/usr/bin/htop /usr/bin
-ln -s $WIREGUARD/usr/sbin/iftop /usr/sbin
-ln -s $WIREGUARD/sbin/resolvconf /sbin
+ln -sf "${WIREGUARD}/usr/bin/wg-quick" /usr/bin
+ln -sf "${WIREGUARD}/usr/bin/wg" /usr/bin
+[ ! -x "/bin/bash" ] && ln -s "${WIREGUARD}/usr/bin/bash" /bin
+ln -sf "${WIREGUARD}/usr/bin/qrencode" /usr/bin
+[ ! -x "/usr/bin/htop" ] && ln -s "${WIREGUARD}/usr/bin/htop" /usr/bin
+[ ! -x "/usr/sbin/iftop" ] && ln -s "${WIREGUARD}/usr/sbin/iftop" /usr/sbin
+[ ! -x "/sbin/resolvconf" ] && ln -s "${WIREGUARD}/sbin/resolvconf" /sbin
 
 # create symlink to wireguard config folder
 if [ ! -d "/etc/wireguard" ]
 then
-   ln -sf $WIREGUARD/etc/wireguard /etc/wireguard
+   ln -sf "${WIREGUARD}/etc/wireguard" /etc/wireguard
 fi
 
 # create symlink to resolvconf config file
 if [ ! -f "/etc/resolvconf.conf" ]
 then
-   ln -s $WIREGUARD/etc/resolvconf.conf /etc/
+   ln -s "${WIREGUARD}/etc/resolvconf.conf" /etc/
 fi
 
 # required by wg-quick
@@ -50,14 +50,14 @@ if [ $? -eq 1 ]
 then
    ver=`uname -r`
    echo "loading wireguard..."
-   if [ -e /lib/modules/$ver/extra/wireguard.ko ]; then
+   if [ -e "/lib/modules/${ver}/extra/wireguard.ko" ]; then
       modprobe wireguard
-   elif [ -e $WIREGUARD/modules/wireguard-$ver.ko ]; then
-     insmod $WIREGUARD/modules/wireguard-$ver.ko
+   elif [ -e "${WIREGUARD}/modules/wireguard-${ver}.ko" ]; then
+     insmod "${WIREGUARD}/modules/wireguard-${ver}.ko"
 #    iptable_raw required for wg-quick's use of iptables-restore
-     insmod $WIREGUARD/modules/iptable_raw-$ver.ko
-     insmod $WIREGUARD/modules/ip6table_raw-$ver.ko
+     insmod "${WIREGUARD}/modules/iptable_raw-${ver}.ko"
+     insmod "${WIREGUARD}/modules/ip6table_raw-${ver}.ko"
    else
-     echo "Unsupported Kernel version $ver"
+     echo "Unsupported Kernel version ${ver}"
    fi
 fi
