@@ -33,10 +33,10 @@ get_persistent_path() {
   if [ -n "$(command -v ubnt-device-info)" ]; then
     case "$(ubnt-device-info summary | awk '$1 ~ /^Model:$/ {gsub(/[\(\)*]/, "", $NF); print $NF}')" in
       UDR)
-        echo -n "/data${1:+/$1}"
+        echo "/data${1:+/$1}"
         ;;
       *)
-        echo -n "/mnt/data${1:+/$1}"
+        echo "/mnt/data${1:+/$1}"
         ;;
     esac
   fi
@@ -46,11 +46,13 @@ on_boot_script() {
 cat << EOF
 #!/usr/bin/env bash
 
+WG_INTERFACE="wg0"
+
 [[ -x "/mnt/data/wireguard/setup_wireguard.sh" ]] && /mnt/data/wireguard/setup_wireguard.sh &>/dev/null || true
 
 if [[ -n "$(command -v wg-quick)" ]]; then
-  echo "wg-quick up wg0"
-  wg-quick up wg0
+  echo "wg-quick up ${WG_INTERFACE}"
+  wg-quick up ${WG_INTERFACE}
 else
   # You can add whatever here like a telegram script to notify that wg could not start
   echo "Wireguard could not be started $(date +%s)" >> /var/log/wg-startup.log
@@ -80,3 +82,8 @@ case "$(ubnt-device-info summary | awk '$1 ~ /^Model:$/ {gsub(/[\(\)*]/, "", $NF
     systemctl enable "$(basename "${WG_SERVICE_PATH%.*}")"
     ;;
 esac
+
+echo
+echo "Wireguard configuration path"
+echo "  $(get_persistent_path "wireguard")/etc/wireguard"
+echo
