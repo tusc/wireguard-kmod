@@ -8,7 +8,8 @@ The tar file in this repository is a collection of binaries that can be loaded o
 Please see below for instructions on how to install the prebuilt kernel module and associated utils.
 ## Table of Contents
 
-  * [Install](#install)
+  * [Install with script](#install-with-script)
+  * [Install manually](#install-manually)
   * [Build from source](#build-from-source)
   * [Surviving Reboots](#surviving-reboots)
   * [Upgrades](#upgrades)
@@ -16,12 +17,28 @@ Please see below for instructions on how to install the prebuilt kernel module a
   * [Configuration](#configuration)
   * [Start tunnel](#start-tunnel)
   * [Stop tunnel](#stop-tunnel)
+  * [Uninstall](#uninstall)
   * [FAQ](#faq)
 
 The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 800Mb/sec throughput through an IPSec tunnel. There has been a large interest in a kernel port of WireGuard since performance is expected to be similar if not more. This kernel module was built using the WireGuard backport as the UDM runs an older kernel(4.1.37). If you want to compile your own version, there will be a seperate build page posted soon. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the Ubiquiti UDM GPL source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
 
 
-## Install
+## Install with script
+
+  1. On UDM/P install [on_boot.d](https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script) to make the changes persistent after reboots. If you have UDM-SE or UDR go step 2.
+
+  2. Install by using the script
+
+    ```sh
+    /usr/bin/curl -fsL "https://github.com/tusc/wireguard-kmod/HEAD/install" | /bin/sh
+    ```
+
+  3. Place your wg0.conf file in the given path printed when the script has finished (normally in `/etc/wireguard`).
+
+    The tar file includes other useful utils such as htop, iftop and [qrencode.](#faq)
+
+## Install manually
+
 1. We first need to download the tar file onto the UDM. Connect to it via SSH and type the following command to download the tar file. You need to download the following tar file. NOTE: always [this link](https://github.com/tusc/wireguard-kmod/releases) check for the latest release.
 
     ```sh
@@ -166,6 +183,15 @@ I'm currently testing throughput using iperf3 between a UDM Pro and an Ubuntu cl
 ```
 # wg-quick down wg0
 ```
+
+## Uninstall
+
+  ```sh
+  /usr/bin/curl -fsL "https://github.com/tusc/wireguard-kmod/HEAD/uninstall" | /bin/sh
+  ```
+
+By default does not remove `/data/wireguard` or `/mnt/data/wireguard`, you can remove it after executing the script or do it manually by using `rm -rf /mnt/data/wireguard /data/wireguard` or download the script and use argument `--purge`.
+
 
 ## FAQ
 
