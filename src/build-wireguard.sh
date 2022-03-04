@@ -10,16 +10,11 @@ then
    fi
    tar -xvjf buildroot-2017.11.1.tar.bz2
 
-   # copy wireguard and openresolv packages and add to menu seleciton
+   # copy packages and patches and add wireguard to buildroot menu selection
    cp -pr packages/* buildroot-2017.11.1/package
-   patch -p0 <patches/wireguard-packages.patch
-   patch -p0 <patches/openresolv-package.patch
-   patch -d buildroot-2017.11.1 -p1 <patches/add-kernel-4-19.patch
-
-   cp patches/0001-m4-glibc-change-work-around.patch buildroot-2017.11.1/package/m4
-   cp patches/0001-bison-glibc-change-work-around.patch buildroot-2017.11.1/package/bison
-   cp patches/944-mpc-relative-literal-loads-logic-in-aarch64_classify_symbol.patch buildroot-2017.11.1/package/gcc/6.4.0
-   cp patches/0001-dtc-extern-yylloc.patch buildroot-2017.11.1/package/dtc
+   for patch in patches/*.patch; do
+	   patch -p0 < "$patch"
+   done
 
    # run make clean after extraction
    (cd buildroot-2017.11.1 && make clean || true)
