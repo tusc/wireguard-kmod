@@ -66,7 +66,7 @@ do
 	   make wireguard-linux-compat-dirclean
 	   sed -i -e '/CONFIG_LOCALVERSION=/s/.*/CONFIG_LOCALVERSION="'$ver'"/' kernel-config
 	   make wireguard-linux-compat-rebuild -j6
-	   cp ./output/build/wireguard-linux-compat-1.0.20211208/src/wireguard.ko ../wireguard/modules/wireguard-${prefix}${ver}.ko
+	   cp ./output/build/wireguard-linux-compat-1.0.20220627/src/wireguard.ko ../wireguard/modules/wireguard-${prefix}${ver}.ko
 	   # the netfiler raw module is required in the wg-quick script for iptables-restore
 	   cp ./output/build/linux-custom/net/ipv4/netfilter/iptable_raw.ko ../wireguard/modules/iptable_raw-${prefix}${ver}.ko
 	   cp ./output/build/linux-custom/net/ipv6/netfilter/ip6table_raw.ko ../wireguard/modules/ip6table_raw-${prefix}${ver}.ko
