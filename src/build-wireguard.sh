@@ -10,16 +10,11 @@ then
    fi
    tar -xvjf buildroot-2017.11.1.tar.bz2
 
-   # copy wireguard and openresolv packages and add to menu seleciton
+   # copy packages and patches and add wireguard to buildroot menu selection
    cp -pr packages/* buildroot-2017.11.1/package
-   patch -p0 <patches/wireguard-packages.patch
-   patch -p0 <patches/openresolv-package.patch
-   patch -d buildroot-2017.11.1 -p1 <patches/add-kernel-4-19.patch
-
-   cp patches/0001-m4-glibc-change-work-around.patch buildroot-2017.11.1/package/m4
-   cp patches/0001-bison-glibc-change-work-around.patch buildroot-2017.11.1/package/bison
-   cp patches/944-mpc-relative-literal-loads-logic-in-aarch64_classify_symbol.patch buildroot-2017.11.1/package/gcc/6.4.0
-   cp patches/0001-dtc-extern-yylloc.patch buildroot-2017.11.1/package/dtc
+   for patch in patches/*.patch; do
+	   patch -p0 < "$patch"
+   done
 
    # run make clean after extraction
    (cd buildroot-2017.11.1 && make clean || true)
@@ -71,7 +66,7 @@ do
 	   make wireguard-linux-compat-dirclean
 	   sed -i -e '/CONFIG_LOCALVERSION=/s/.*/CONFIG_LOCALVERSION="'$ver'"/' kernel-config
 	   make wireguard-linux-compat-rebuild -j6
-	   cp ./output/build/wireguard-linux-compat-1.0.20210606/src/wireguard.ko ../wireguard/modules/wireguard-${prefix}${ver}.ko
+	   cp ./output/build/wireguard-linux-compat-1.0.20220627/src/wireguard.ko ../wireguard/modules/wireguard-${prefix}${ver}.ko
 	   # the netfiler raw module is required in the wg-quick script for iptables-restore
 	   cp ./output/build/linux-custom/net/ipv4/netfilter/iptable_raw.ko ../wireguard/modules/iptable_raw-${prefix}${ver}.ko
 	   cp ./output/build/linux-custom/net/ipv6/netfilter/ip6table_raw.ko ../wireguard/modules/ip6table_raw-${prefix}${ver}.ko
@@ -87,7 +82,17 @@ if [ ! -f "../wireguard/usr/sbin/iftop" ]; then
 	mkdir -p ../wireguard/sbin
 
 	# Use 1.9.0-10 buildroot config for utilities
-	cp ../bases/udm-1.9.0-10/buildroot-config.txt ./.config
+	base="../bases/udm-1.9.0-10"
+	cp "${base}/buildroot-config.txt" ./.config
+	cp "${base}/kernel-config" ./
+	rm -rf ./linux-patches ./patches
+	if [ -d "${base}/linux-patches" ]; then
+		cp -rf "${base}/linux-patches" ./
+	fi
+	if [ -d "${base}/patches" ]; then
+		cp -rf "${base}/patches" ./
+	fi
+	rm -rf output/build/linux-*
 
 	make wireguard-tools-rebuild
 	cp ./output/target/usr/bin/wg ../wireguard/usr/bin

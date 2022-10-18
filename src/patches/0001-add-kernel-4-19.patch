@@ -1,7 +1,7 @@
-diff --git a/package/linux-headers/Config.in.host b/package/linux-headers/Config.in.host
+diff --git buildroot-2017.11.1.orig/package/linux-headers/Config.in.host buildroot-2017.11.1/package/linux-headers/Config.in.host
 index 4d9652b..6fb948e 100644
---- a/package/linux-headers/Config.in.host
-+++ b/package/linux-headers/Config.in.host
+--- buildroot-2017.11.1.orig/package/linux-headers/Config.in.host
++++ buildroot-2017.11.1/package/linux-headers/Config.in.host
 @@ -74,6 +74,11 @@ config BR2_KERNEL_HEADERS_4_13
  	bool "Linux 4.13.x kernel headers"
  	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_13
@@ -31,10 +31,10 @@ index 4d9652b..6fb948e 100644
  	default "4.13.16"	if BR2_KERNEL_HEADERS_4_13
 +	default "4.19.152"  if BR2_KERNEL_HEADERS_4_19
  	default BR2_DEFAULT_KERNEL_VERSION if BR2_KERNEL_HEADERS_VERSION
-diff --git a/toolchain/toolchain-common.in b/toolchain/toolchain-common.in
+diff --git buildroot-2017.11.1.orig/toolchain/toolchain-common.in buildroot-2017.11.1/toolchain/toolchain-common.in
 index d87d4d7..3c15fec 100644
---- a/toolchain/toolchain-common.in
-+++ b/toolchain/toolchain-common.in
+--- buildroot-2017.11.1.orig/toolchain/toolchain-common.in
++++ buildroot-2017.11.1/toolchain/toolchain-common.in
 @@ -253,10 +253,15 @@ config BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_13
  	bool
  	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_12
@@ -51,10 +51,10 @@ index d87d4d7..3c15fec 100644
  	default "4.13" if BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_13
  	default "4.12" if BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_12
  	default "4.11" if BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_11
-diff --git a/toolchain/toolchain-external/toolchain-external-custom/Config.in.options b/toolchain/toolchain-external/toolchain-external-custom/Config.in.options
+diff --git buildroot-2017.11.1.orig/toolchain/toolchain-external/toolchain-external-custom/Config.in.options buildroot-2017.11.1/toolchain/toolchain-external/toolchain-external-custom/Config.in.options
 index a285340..72efc19 100644
---- a/toolchain/toolchain-external/toolchain-external-custom/Config.in.options
-+++ b/toolchain/toolchain-external/toolchain-external-custom/Config.in.options
+--- buildroot-2017.11.1.orig/toolchain/toolchain-external/toolchain-external-custom/Config.in.options
++++ buildroot-2017.11.1/toolchain/toolchain-external/toolchain-external-custom/Config.in.options
 @@ -93,6 +93,10 @@ choice
  	    m = ( LINUX_VERSION_CODE >> 8  ) & 0xFF
  	    p = ( LINUX_VERSION_CODE >> 0  ) & 0xFF

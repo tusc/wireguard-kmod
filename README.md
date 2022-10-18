@@ -42,7 +42,7 @@ The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 
 1. We first need to download the tar file onto the UDM. Connect to it via SSH and type the following command to download the tar file. You need to download the following tar file. NOTE: always [this link](https://github.com/tusc/wireguard-kmod/releases) check for the latest release.
 
     ```sh
-    curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/releases/download/v11-05-21/wireguard-kmod-11-05-21.tar.Z
+    curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/releases/download/v09-24-22/wireguard-kmod-09-24-22.tar.Z
     ```
 
 2. From this directory type the following to extract the files:
@@ -70,6 +70,8 @@ The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 
     [13540.520120] wireguard: WireGuard 1.0.20210219 loaded. See www.wireguard.com for information.
     [13540.520126] wireguard: Copyright (C) 2015-2019 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
     ```
+
+    The script will first try to load the built-in wireguard module if it exists. If it doesn't exist, the external module provided by this package will be loaded instead. You can set `LOAD_BUILTIN=0` at the top of the `setup_wireguard.sh` script to always load the external module. Note that only recent UDM releases since 1.11.0 have the built-in module, and it is not always up-to-date.
 
     The tar file includes other useful utils such as htop, iftop and [qrencode.](#faq)
 

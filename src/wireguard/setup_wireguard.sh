@@ -7,6 +7,11 @@
 # v4-10-21	Updated release to include utils such as htop, iftop and qrencode. The last one allows easy import of wireguard configs
 #		into your IOS/Android WireGuard client using QR codes. 
 # v6-23-21	Added support for resolvconf
+
+# Set this to 1 to try to load the built-in wireguard module first. External module will still be loaded if built-in one doesn't exist.
+# Set to 0 to only load external module.
+LOAD_BUILTIN=1
+
 DATA_DIR="."
 if [ -d "/mnt/data" ]; then
 	DATA_DIR="/mnt/data"
@@ -50,7 +55,7 @@ if [ $? -eq 1 ]
 then
    ver=`uname -r`
    echo "loading wireguard..."
-   if [ -e /lib/modules/$ver/extra/wireguard.ko ]; then
+   if [ "$LOAD_BUILTIN" = "1" -a -e /lib/modules/$ver/extra/wireguard.ko ]; then
       modprobe wireguard
    elif [ -e $WIREGUARD/modules/wireguard-$ver.ko ]; then
      insmod $WIREGUARD/modules/wireguard-$ver.ko
