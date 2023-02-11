@@ -18,7 +18,7 @@ Please see below for instructions on how to install the prebuilt kernel module a
   * [Stop tunnel](#stop-tunnel)
   * [FAQ](#faq)
 
-The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 800Mb/sec throughput through an IPSec tunnel. There has been a large interest in a kernel port of WireGuard since performance is expected to be similar if not more. This kernel module was built using the WireGuard backport as the UDM runs an older kernel(4.1.37). If you want to compile your own version, there will be a seperate build page posted soon. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the Ubiquiti UDM GPL source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
+The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 800Mb/sec throughput through an IPSec tunnel. There has been a large interest in a kernel port of WireGuard since performance is expected to be similar if not better . This kernel module was built using the WireGuard backport as the UDM runs an older kernel(4.1.37). If you want to compile your own version, there will be a seperate build page posted soon. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the Ubiquiti UDM GPL source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
 
 
 ## Install
@@ -47,7 +47,7 @@ The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 
     chmod +x setup_wireguard.sh
     ./setup_wireguard.sh
     ```
-    This will setup the symbolic links for the various binaries to the /usr/bin path as well as create a symlink for the /etc/wireguard folder and finally load the kernel module. You'll want to run **dmesg** to verify the kernel module was loaded. You should see something like the following: 
+    This will set up the symbolic links for the various binaries to the /usr/bin path as well as create a symlink for the /etc/wireguard folder and finally load the kernel module. You'll want to run **dmesg** to verify the kernel module was loaded. You should see something like the following: 
     
     ```
     [13540.520120] wireguard: WireGuard 1.0.20210219 loaded. See www.wireguard.com for information.
@@ -59,12 +59,12 @@ The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 
     The tar file includes other useful utils such as htop, iftop and [qrencode.](#faq)
 
 ## Build from source
-To build this package please follow this [README](https://github.com/tusc/wireguard-kmod/blob/main/README.building.md)
+To build this package, please follow this [README](https://github.com/tusc/wireguard-kmod/blob/main/README.building.md)
 
 ## Surviving Reboots
 **Please Note: you will need to run setup_wireguard.sh whenever the UDM is rebooted as the symlinks have to be recreated.** 
 
-* For the UDM or UDM Pro, Boostchicken has a package that can be installed to automatically run the wireguard script anytime the router is rebooted. Just follow the instructions [here](https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script) and drop the **setup_wireguard.sh** script into the /mnt/data/on_boot.d directory when finished.
+* For the UDM or UDM Pro, Boostchicken has a package that can be installed to automatically run the wireguard script any time the router is rebooted. Just follow the instructions [here](https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script) and drop the **setup_wireguard.sh** script into the /mnt/data/on_boot.d directory when finished.
 * For the UDM-SE or UDR, create a systemd boot service to run the setup script at boot by running the following commands:
 	```sh
 	curl -Lo /etc/systemd/system/setup-wireguard.service https://raw.githubusercontent.com/tusc/wireguard-kmod/main/src/boot/setup-wireguard.service
@@ -84,7 +84,7 @@ loading wireguard...
 insmod: can't insert 'wireguard-4.1.37-v1.9.3.3438-50c9677.ko': No such file or directory
 insmod: can't insert 'iptable_raw-4.1.37-v1.9.3.3438-50c9677.ko': No such file or directory
 ```
-Please reach out and send me a copy of the output from above.
+Please reach out and send me a copy of the output from the command above.
 ## Configuration
 There's a sample WireGuard config file in /etc/wireguard you can use to create your own, provided you update the public and private keys. You'll want to copy the sample config and use VI to edit it. You can also just copy an existing config from another server you want to use.
 
@@ -92,7 +92,7 @@ There's a sample WireGuard config file in /etc/wireguard you can use to create y
 cp /etc/wireguard/wg0.conf.sample /etc/wireguard/wg0.conf
 vi /etc/wireguard/wg0.conf
 ```
-There are various tutorials out there for setting up a client/server config for WireGuard (e.g. https://www.stavros.io/posts/how-to-configure-wireguard/ ). A typical config might be to allow remote access to your internal LAN over the WAN from a mobile phone or romaing laptop. For the purpose of this example, the UDM is the server and the phone/laptop the client. For this you would need to setup a config file on the UDM similar to the following:
+There are various tutorials out there for setting up a client/server config for WireGuard (e.g. https://www.stavros.io/posts/how-to-configure-wireguard/ ). A typical config might be to allow remote access to your internal LAN over the WAN from a mobile phone or romaing laptop. For the purpose of this example, the UDM is the server and the phone/laptop the client. For this you would need to set up a config file on the UDM similar to the following:
 
 ```
 [Interface]
@@ -163,7 +163,7 @@ peer: XXXXXXXXXXXX
 ```
 I'm currently testing throughput using iperf3 between a UDM Pro and an Ubuntu client over 10Gb. With the UDM as the iperf3 server I'm seeing up to 1.5Gb/sec.
 ## Stop tunnel
- Finally, in order to shutdown the tunnel you'll need to run this command:
+ Finally, in order to shut down the tunnel you'll need to run this command:
  
 ```
 # wg-quick down wg0
@@ -172,7 +172,7 @@ I'm currently testing throughput using iperf3 between a UDM Pro and an Ubuntu cl
 ## FAQ
 
 <details>
-  <summary>Setup script returns error "Unsupported Kernel version XXX"</summary>   
+  <summary>Setup script returns the  error "Unsupported Kernel version XXX"</summary>   
     
   * The wireguard package does not contain a wireguard module built for your firmware or kernel version, nor is there a built-in module in your kernel. Please open an issue and report your version so we can try to update the module.
 
