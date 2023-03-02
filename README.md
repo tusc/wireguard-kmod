@@ -18,32 +18,36 @@ Please see below for instructions on how to install the prebuilt kernel module a
   * [Stop tunnel](#stop-tunnel)
   * [FAQ](#faq)
 
-The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 800Mb/sec throughput through an IPSec tunnel. There has been a large interest in a kernel port of WireGuard since performance is expected to be similar if not more. This kernel module was built using the WireGuard backport as the UDM runs an older kernel(4.1.37). If you want to compile your own version, there will be a seperate build page posted soon. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the Ubiquiti UDM GPL source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
+The Unifi UDM is built on a powerful quad core ARM64 CPU that can sustain up to 800Mb/sec throughput through an IPSec tunnel. There has been a large interest in a kernel port of WireGuard since performance is expected to be similar if not more. If you want to compile your own version, there will be a seperate build page posted soon. This was built from the GPL sources Ubiquiti sent me. I have a seperate github page for the Ubiquiti UDM GPL source code: https://github.com/tusc/UDM-source-code/blob/main/README.md
 
+## Notice for UnifiOS 2.x and up
+
+Note that since UnifiOS 2.x, both the wireguard module and tools (wg, wg-quick) come pre-installed by Ubiquiti. You can simply use wg-quick directly without installing this project. However, the kernel module Ubquiti uses might be outdated. You can still install this project on UnifiOS 2.x and up to get the latest wireguard module if you prefer.
 
 ## Install
 1. We first need to download the tar file onto the UDM. Connect to it via SSH and type the following command to download the tar file. You need to download the following tar file. NOTE: always check [this link](https://github.com/tusc/wireguard-kmod/releases) for the latest release.
 
     ```sh
-    curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/releases/download/v11-13-22/wireguard-kmod-11-13-22.tar.Z
+    curl -LJo wireguard-kmod.tar.Z https://github.com/tusc/wireguard-kmod/releases/download/v03-01-23/wireguard-kmod-03-01-23.tar.Z
     ```
 
 2. From this directory type the following to extract the files:
 
-	* For the UDM, UDM-Pro, UDM-SE, or UXG-Pro, extract the files into `/mnt/data/wireguard`
-	
-		```sh
-		tar -C /mnt/data -xvzf wireguard-kmod.tar.Z
-		```
-	* For the UDR, extract the files into `/data/wireguard`
+    * For UnifiOS 2.x, extract the files into `/data/wireguard`
 	
 		```sh
 		tar -C /data -xvzf wireguard-kmod.tar.Z
 		```
+    * For UnifiOS 1.x, extract the files into `/mnt/data/wireguard`
+	
+		```sh
+		tar -C /mnt/data -xvzf wireguard-kmod.tar.Z
+		```
+	
 
-2. Once the extraction is complete, cd into `/mnt/data/wireguard` (or `/data/wireguard` for UDR) and run the script **setup_wireguard.sh** as shown below
+2. Once the extraction is complete, cd into `/data/wireguard` for UnifiOS 2.x (or `/mnt/data/wireguard` for UnifiOS 1.x) and run the script **setup_wireguard.sh** as shown below
     ```
-    cd /mnt/data/wireguard
+    cd /data/wireguard
     chmod +x setup_wireguard.sh
     ./setup_wireguard.sh
     ```
@@ -64,8 +68,8 @@ To build this package please follow this [README](https://github.com/tusc/wiregu
 ## Surviving Reboots
 **Please Note: you will need to run setup_wireguard.sh whenever the UDM is rebooted as the symlinks have to be recreated.** 
 
-* For the UDM or UDM Pro, Boostchicken has a package that can be installed to automatically run the wireguard script anytime the router is rebooted. Just follow the instructions [here](https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script) and drop the **setup_wireguard.sh** script into the /mnt/data/on_boot.d directory when finished.
-* For the UDM-SE or UDR, create a systemd boot service to run the setup script at boot by running the following commands:
+* For the UnifiOS 1.x, Boostchicken has a package that can be installed to automatically run the wireguard script anytime the router is rebooted. Just follow the instructions [here](https://github.com/boostchicken/udm-utilities/tree/master/on-boot-script) and drop the **setup_wireguard.sh** script into the /mnt/data/on_boot.d directory when finished.
+* For the UnifiOS 2.x, you can either use boostchicken's boot package and throw **setup_wireguard.sh** into `/data/on_boot.d`, or you can natively create a systemd boot service to run the setup script at boot by running the following commands:
 	```sh
 	curl -Lo /etc/systemd/system/setup-wireguard.service https://raw.githubusercontent.com/tusc/wireguard-kmod/main/src/boot/setup-wireguard.service
 	systemctl daemon-reload
