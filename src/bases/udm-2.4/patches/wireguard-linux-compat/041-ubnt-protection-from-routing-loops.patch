@@ -1,0 +1,31 @@
+diff --git a/src/device.c b/src/device.c
+index c673446..25aac06 100644
+--- a/src/device.c
++++ b/src/device.c
+@@ -127,14 +127,26 @@ static netdev_tx_t wg_xmit(struct sk_buff *skb, struct net_device *dev)
+ 	struct sk_buff_head packets;
+ 	struct wg_peer *peer;
+ 	struct sk_buff *next;
+ 	sa_family_t family;
+ 	u32 mtu;
+ 	int ret;
+ 
++	if (unlikely(skb->mark & wg->fwmark)) {
++		ret = -ENETDOWN;
++		net_crit_ratelimited("%s: loop detected, dropping skb of length %u\n", dev->name, skb->len);
++		goto err;
++	}
++
++	if (unlikely(skb_end_offset(skb) > 33000)) {
++		ret = -ENETDOWN;
++		net_crit_ratelimited("%s: possible loop detected, dropping skb of size %u\n", dev->name, skb_end_offset(skb));
++		goto err;
++	}
++
+ 	if (unlikely(!wg_check_packet_protocol(skb))) {
+ 		ret = -EPROTONOSUPPORT;
+ 		net_dbg_ratelimited("%s: Invalid IP packet\n", dev->name);
+ 		goto err;
+ 	}
+ 
+ 	peer = wg_allowedips_lookup_dst(&wg->peer_allowedips, skb);

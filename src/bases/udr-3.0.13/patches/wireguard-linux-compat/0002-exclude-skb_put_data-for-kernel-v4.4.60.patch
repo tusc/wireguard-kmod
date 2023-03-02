@@ -1,0 +1,14 @@
+diff --git a/src/compat/compat.h b/src/compat/compat.h
+index 7acbfc6..845238c 100644
+--- a/src/compat/compat.h
++++ b/src/compat/compat.h
+@@ -665,7 +665,8 @@ struct __compat_dummy_container { char dev; };
+ #endif
+ 
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0) && !defined(ISRHEL7) && \
+-	LINUX_VERSION_CODE != KERNEL_VERSION(4, 4, 198)
++	LINUX_VERSION_CODE != KERNEL_VERSION(4, 4, 198) && \
++	LINUX_VERSION_CODE != KERNEL_VERSION(4, 4, 60)
+ static inline void *skb_put_data(struct sk_buff *skb, const void *data, unsigned int len)
+ {
+ 	void *tmp = skb_put(skb, len);

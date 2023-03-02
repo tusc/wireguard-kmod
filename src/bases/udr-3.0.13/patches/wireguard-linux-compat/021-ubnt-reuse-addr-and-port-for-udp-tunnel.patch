@@ -1,0 +1,73 @@
+diff --git a/src/compat/udp_tunnel/udp_tunnel_partial_compat.h b/src/compat/udp_tunnel/udp_tunnel_partial_compat.h
+index 0605896..ca810fd 100644
+--- a/src/compat/udp_tunnel/udp_tunnel_partial_compat.h
++++ b/src/compat/udp_tunnel/udp_tunnel_partial_compat.h
+@@ -168,15 +168,15 @@ struct __compat_udp_port_cfg {
+ 		struct in_addr peer_ip;
+ #if IS_ENABLED(CONFIG_IPV6)
+ 		struct in6_addr peer_ip6;
+ #endif
+ 	};
+ 	__be16 local_udp_port;
+ 	__be16 peer_udp_port;
+-	unsigned int use_udp_checksums:1, use_udp6_tx_checksums:1, use_udp6_rx_checksums:1, ipv6_v6only:1;
++	unsigned int use_udp_checksums:1, use_udp6_tx_checksums:1, use_udp6_rx_checksums:1, reuse_addr:1, reuse_port:1, ipv6_v6only:1;
+ };
+ static inline int __maybe_unused __compat_udp_sock_create(struct net *net, struct __compat_udp_port_cfg *cfg, struct socket **sockp)
+ {
+ 	struct udp_port_cfg old_cfg = {
+ 		.family = cfg->family,
+ 		.local_ip = cfg->local_ip,
+ #if IS_ENABLED(CONFIG_IPV6)
+@@ -186,15 +186,17 @@ static inline int __maybe_unused __compat_udp_sock_create(struct net *net, struc
+ #if IS_ENABLED(CONFIG_IPV6)
+ 		.peer_ip6 = cfg->peer_ip6,
+ #endif
+ 		.local_udp_port = cfg->local_udp_port,
+ 		.peer_udp_port = cfg->peer_udp_port,
+ 		.use_udp_checksums = cfg->use_udp_checksums,
+ 		.use_udp6_tx_checksums = cfg->use_udp6_tx_checksums,
+-		.use_udp6_rx_checksums = cfg->use_udp6_rx_checksums
++		.use_udp6_rx_checksums = cfg->use_udp6_rx_checksums,
++		.reuse_addr = cfg->reuse_addr,
++		.reuse_port = cfg->reuse_port
+ 	};
+ 	if (cfg->family == AF_INET)
+ 		return udp_sock_create4(net, &old_cfg, sockp);
+ 
+ #if IS_ENABLED(CONFIG_IPV6)
+ 	if (cfg->family == AF_INET6) {
+ 		int ret;
+diff --git a/src/socket.c b/src/socket.c
+index e8eceeb..dcc4088 100644
+--- a/src/socket.c
++++ b/src/socket.c
+@@ -355,23 +355,27 @@ int wg_socket_init(struct wg_device *wg, u16 port)
+ 		.encap_rcv = wg_receive
+ 	};
+ 	struct socket *new4 = NULL, *new6 = NULL;
+ 	struct udp_port_cfg port4 = {
+ 		.family = AF_INET,
+ 		.local_ip.s_addr = htonl(INADDR_ANY),
+ 		.local_udp_port = htons(port),
+-		.use_udp_checksums = true
++		.use_udp_checksums = true,
++		.reuse_addr = true,
++		.reuse_port = true
+ 	};
+ #if IS_ENABLED(CONFIG_IPV6)
+ 	int retries = 0;
+ 	struct udp_port_cfg port6 = {
+ 		.family = AF_INET6,
+ 		.local_ip6 = IN6ADDR_ANY_INIT,
+ 		.use_udp6_tx_checksums = true,
+ 		.use_udp6_rx_checksums = true,
++		.reuse_addr = true,
++		.reuse_port = true,
+ 		.ipv6_v6only = true
+ 	};
+ #endif
+ 
+ 	rcu_read_lock();
+ 	net = rcu_dereference(wg->creating_net);
+ 	net = net ? maybe_get_net(net) : NULL;
