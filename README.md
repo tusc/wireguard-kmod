@@ -51,7 +51,7 @@ Note that since UnifiOS 2.x, both the wireguard module and tools (wg, wg-quick) 
     chmod +x setup_wireguard.sh
     ./setup_wireguard.sh
     ```
-    This will setup the symbolic links for the various binaries to the /usr/bin path as well as create a symlink for the /etc/wireguard folder and finally load the kernel module. You'll want to run **dmesg** to verify the kernel module was loaded. You should see something like the following: 
+    This will set up the symbolic links for the various binaries to the /usr/bin path as well as create a symlink for the /etc/wireguard folder and finally load the kernel module. You'll want to run **dmesg** to verify the kernel module was loaded. You should see something like the following: 
     
     ```
     [13540.520120] wireguard: WireGuard 1.0.20210219 loaded. See www.wireguard.com for information.
@@ -96,7 +96,7 @@ There's a sample WireGuard config file in /etc/wireguard you can use to create y
 cp /etc/wireguard/wg0.conf.sample /etc/wireguard/wg0.conf
 vi /etc/wireguard/wg0.conf
 ```
-There are various tutorials out there for setting up a client/server config for WireGuard (e.g. https://www.stavros.io/posts/how-to-configure-wireguard/ ). A typical config might be to allow remote access to your internal LAN over the WAN from a mobile phone or romaing laptop. For the purpose of this example, the UDM is the server and the phone/laptop the client. For this you would need to setup a config file on the UDM similar to the following:
+There are various tutorials out there for setting up a client/server config for WireGuard (e.g. https://www.stavros.io/posts/how-to-configure-wireguard/ ). A typical config might be to allow remote access to your internal LAN over the WAN from a mobile phone or romaing laptop. For the purpose of this example, the UDM is the server and the phone/laptop the client. For this you would need to set up a config file on the UDM similar to the following:
 
 ```
 [Interface]
